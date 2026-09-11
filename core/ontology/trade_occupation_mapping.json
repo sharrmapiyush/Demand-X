@@ -1,0 +1,71 @@
+{
+  "version": "1.0.0",
+  "institute_code": "2765211006",
+  "institute_name": "Industrial Training Institute, Haveli",
+  "source_snapshot": "data/raw/dvet_pune/dvet_pune_haveli_verified_snapshot.json",
+  "mappings": [
+    {
+      "canonical_trade_name": "Basic Cosmetology",
+      "occupation_id": "OCC-BEAUTY-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Occupation inferred from canonical trade name; awaiting official occupational standards verification.",
+      "mapping_method": "Trade-to-Occupation Inference V1",
+      "version": "1.0"
+    },
+    {
+      "canonical_trade_name": "Computer Operator and Programming Assistant",
+      "occupation_id": "OCC-COMP-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Occupation inferred from canonical trade name; awaiting official occupational standards verification.",
+      "mapping_method": "Trade-to-Occupation Inference V1",
+      "version": "1.0"
+    },
+    {
+      "canonical_trade_name": "Fashion Design & Technology",
+      "occupation_id": "OCC-FASHION-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Occupation inferred from canonical trade name; awaiting official occupational standards verification.",
+      "mapping_method": "Trade-to-Occupation Inference V1",
+      "version": "1.0"
+    },
+    {
+      "canonical_trade_name": "Information & Communication Technology System Maintenance",
+      "occupation_id": "OCC-ICT-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Occupation inferred from canonical trade name; awaiting official occupational standards verification.",
+      "mapping_method": "Trade-to-Occupation Inference V1",
+      "version": "1.0"
+    },
+    {
+      "canonical_trade_name": "Machinist",
+      "occupation_id": "OCC-MACH-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Occupation inferred from canonical trade name; awaiting official occupational standards verification.",
+      "mapping_method": "Trade-to-Occupation Inference V1",
+      "version": "1.0"
+    },
+    {
+      "canonical_trade_name": "Mechanic (Motor Vehicle)",
+      "occupation_id": "OCC-AUTO-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Occupation inferred from canonical trade name; awaiting official occupational standards verification.",
+      "mapping_method": "Trade-to-Occupation Inference V1",
+      "version": "1.0"
+    },
+    {
+      "canonical_trade_name": "Painter General",
+      "occupation_id": "OCC-PAINT-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Occupation inferred from canonical trade name; awaiting official occupational standards verification.",
+      "mapping_method": "Trade-to-Occupation Inference V1",
+      "version": "1.0"
+    }
+  ]
+}

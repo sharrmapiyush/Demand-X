@@ -1,0 +1,80 @@
+{
+  "version": "2.0.0",
+  "institute_code": "2765211006",
+  "institute_name": "Industrial Training Institute, Haveli",
+  "source_snapshot": "data/raw/dvet_pune/dvet_pune_haveli_verified_snapshot.json",
+  "mappings": [
+    {
+      "canonical_trade_name": "Basic Cosmetology",
+      "skill_id": "SKL-BEAUTY-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Canonical trade mapping derived from verified institute trade record; awaiting empirical syllabus verification.",
+      "mapping_method": "Direct Trade-to-Skill Association V2",
+      "version": "2.0"
+    },
+    {
+      "canonical_trade_name": "Computer Operator and Programming Assistant",
+      "skill_id": "SKL-COMP-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Canonical trade mapping derived from verified institute trade record; awaiting empirical syllabus verification.",
+      "mapping_method": "Direct Trade-to-Skill Association V2",
+      "version": "2.0"
+    },
+    {
+      "canonical_trade_name": "Computer Operator and Programming Assistant",
+      "skill_id": "SKL-PROG-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Canonical trade mapping derived from verified institute trade record; awaiting empirical syllabus verification.",
+      "mapping_method": "Direct Trade-to-Skill Association V2",
+      "version": "2.0"
+    },
+    {
+      "canonical_trade_name": "Fashion Design & Technology",
+      "skill_id": "SKL-FASHION-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Canonical trade mapping derived from verified institute trade record; awaiting empirical syllabus verification.",
+      "mapping_method": "Direct Trade-to-Skill Association V2",
+      "version": "2.0"
+    },
+    {
+      "canonical_trade_name": "Information & Communication Technology System Maintenance",
+      "skill_id": "SKL-ICT-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Canonical trade mapping derived from verified institute trade record; awaiting empirical syllabus verification.",
+      "mapping_method": "Direct Trade-to-Skill Association V2",
+      "version": "2.0"
+    },
+    {
+      "canonical_trade_name": "Machinist",
+      "skill_id": "SKL-MACH-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Canonical trade mapping derived from verified institute trade record; awaiting empirical syllabus verification.",
+      "mapping_method": "Direct Trade-to-Skill Association V2",
+      "version": "2.0"
+    },
+    {
+      "canonical_trade_name": "Mechanic (Motor Vehicle)",
+      "skill_id": "SKL-AUTO-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Canonical trade mapping derived from verified institute trade record; awaiting empirical syllabus verification.",
+      "mapping_method": "Direct Trade-to-Skill Association V2",
+      "version": "2.0"
+    },
+    {
+      "canonical_trade_name": "Painter General",
+      "skill_id": "SKL-PAINT-01",
+      "mapping_status": "NEEDS_REVIEW",
+      "evidence_source": "DVET Pune ITI Haveli Verified Snapshot",
+      "evidence_note": "Canonical trade mapping derived from verified institute trade record; awaiting empirical syllabus verification.",
+      "mapping_method": "Direct Trade-to-Skill Association V2",
+      "version": "2.0"
+    }
+  ]
+}

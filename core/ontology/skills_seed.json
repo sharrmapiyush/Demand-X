@@ -1,0 +1,352 @@
+{
+  "version": "3.0.0",
+  "source_framework": "DVET Pune ITI Haveli Verified Snapshot Trade Names + Naukri Historical Evidence Expansion",
+  "expansion_policy": "New skills added from deterministic analysis of 21,910 Naukri historical job observations. All new entries have verification_status=NEEDS_REVIEW. source_basis records the evidence origin. No skills were invented — every addition is grounded in observed labour-market demand.",
+  "skills": [
+    {
+      "skill_id": "SKL-BEAUTY-01",
+      "canonical_skill_name": "Skin and Hair Care",
+      "aliases": ["Skin Care", "Hair Styling", "Cosmetology Basics", "Beauty Therapy"],
+      "skill_category": "Personal Care & Services",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Basic Cosmetology",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Mapped from Basic Cosmetology trade name; awaiting empirical syllabus verification.",
+      "version": "2.0"
+    },
+    {
+      "skill_id": "SKL-COMP-01",
+      "canonical_skill_name": "Computer Operation & Office Productivity",
+      "aliases": ["Computer Fundamentals", "MS Office", "Office Automation", "Data Entry"],
+      "skill_category": "IT-ITeS",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Computer Operator and Programming Assistant",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Mapped from COPA trade name; awaiting empirical syllabus verification.",
+      "version": "2.0"
+    },
+    {
+      "skill_id": "SKL-PROG-01",
+      "canonical_skill_name": "Basic Programming & Database Management",
+      "aliases": ["Programming Basics", "SQL Basics", "Database Management", "HTML/JS Basics"],
+      "skill_category": "IT-ITeS",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Computer Operator and Programming Assistant",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Mapped from COPA trade name; awaiting empirical syllabus verification.",
+      "version": "2.0"
+    },
+    {
+      "skill_id": "SKL-FASHION-01",
+      "canonical_skill_name": "Garment Construction & Pattern Making",
+      "aliases": ["Pattern Making", "Garment Manufacturing", "Sewing Operations", "Fashion Design"],
+      "skill_category": "Textile & Apparel",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Fashion Design & Technology",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Mapped from Fashion Design & Technology trade name; awaiting empirical syllabus verification.",
+      "version": "2.0"
+    },
+    {
+      "skill_id": "SKL-ICT-01",
+      "canonical_skill_name": "PC Hardware Assembly & System Maintenance",
+      "aliases": ["Hardware Troubleshooting", "System Maintenance", "PC Assembling", "Peripheral Maintenance"],
+      "skill_category": "Electronics & IT Hardware",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Information & Communication Technology System Maintenance",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Mapped from ICTSM trade name; awaiting empirical syllabus verification.",
+      "version": "2.0"
+    },
+    {
+      "skill_id": "SKL-MACH-01",
+      "canonical_skill_name": "Machine Tool Operation & Precision Measurement",
+      "aliases": ["Lathe Operation", "Milling", "Precision Measurement", "Machining"],
+      "skill_category": "Automotive & Manufacturing",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Machinist",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Mapped from Machinist trade name; awaiting empirical syllabus verification.",
+      "version": "2.0"
+    },
+    {
+      "skill_id": "SKL-AUTO-01",
+      "canonical_skill_name": "Automotive Engine Diagnostics & Repair",
+      "aliases": ["Engine Diagnostics", "Automotive Maintenance", "Vehicle Servicing", "Motor Vehicle Repair"],
+      "skill_category": "Automotive & Manufacturing",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Mechanic (Motor Vehicle)",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Mapped from Mechanic (Motor Vehicle) trade name; awaiting empirical syllabus verification.",
+      "version": "2.0"
+    },
+    {
+      "skill_id": "SKL-PAINT-01",
+      "canonical_skill_name": "Surface Preparation & Coating Application",
+      "aliases": ["Surface Coating", "Spray Painting", "Painter General", "Industrial Painting"],
+      "skill_category": "Manufacturing & Construction",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Painter General",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Mapped from Painter General trade name; awaiting empirical syllabus verification.",
+      "version": "2.0"
+    },
+
+    {
+      "skill_id": "SKL-DEV-JAVA-01",
+      "canonical_skill_name": "Java Programming",
+      "aliases": ["Java", "Java SE", "Core Java", "J2SE"],
+      "skill_category": "Programming Languages",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 2,433 distinct jobs / 6,230 title/description mentions. NEVER merged with JavaScript.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Highest-frequency technical skill in the dataset. Java != JavaScript.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DEV-JAVASCRIPT-01",
+      "canonical_skill_name": "JavaScript",
+      "aliases": ["Javascript", "ECMAScript", "ES6"],
+      "skill_category": "Programming Languages",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,693 distinct jobs / 3,217 title/description mentions. Word-boundary protected from Java.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Distinct from Java. Word-boundary matching prevents substring false positives.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DEV-J2EE-01",
+      "canonical_skill_name": "Java EE / J2EE",
+      "aliases": ["J2EE", "Java EE", "Enterprise Java"],
+      "skill_category": "Programming Languages",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 784 distinct jobs / 1,515 title/description mentions. Kept separate from Java Programming for demand granularity.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Enterprise Java platform. Could later fold into Java Programming if demand granularity is not needed.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DEV-PYTHON-01",
+      "canonical_skill_name": "Python Programming",
+      "aliases": ["Python"],
+      "skill_category": "Programming Languages",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 610 distinct jobs / 1,148 title/description mentions. Below top-30 threshold but explicit skill-demand target.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Growing demand language in the dataset.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DEV-PHP-01",
+      "canonical_skill_name": "PHP Programming",
+      "aliases": ["PHP"],
+      "skill_category": "Programming Languages",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,069 distinct jobs / 2,588 title/description mentions.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Web development language; casing variants (PHP, Php, php) normalize safely.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DEV-DOTNET-01",
+      "canonical_skill_name": ".NET Development",
+      "aliases": [".NET", "Dot Net", "Microsoft .NET", "MS .NET", "dotnet"],
+      "skill_category": "Programming Languages",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 99 distinct jobs / 160 title/description mentions as 'dotnet' token. Multiple casing variants (.NET, Dot Net, dotnet) observed.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Microsoft development platform. C# is a separate canonical skill (SKL-DEV-CSHARP-01).",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DEV-CSHARP-01",
+      "canonical_skill_name": "C# Programming",
+      "aliases": ["C Sharp", "Csharp", "C#"],
+      "skill_category": "Programming Languages",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 6 distinct jobs / 6 title/description mentions. Thin evidence but explicit skill-demand target.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Distinct from C++. Never merged.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DEV-CPP-01",
+      "canonical_skill_name": "C++ Programming",
+      "aliases": ["C Plus Plus", "Cpp", "C++"],
+      "skill_category": "Programming Languages",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 2 distinct jobs / 2 title/description mentions. Thin evidence but explicit skill-demand target.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Distinct from C#. Never merged.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DB-SQL-01",
+      "canonical_skill_name": "SQL & Query Languages",
+      "aliases": ["SQL", "Structured Query Language"],
+      "skill_category": "Databases",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 2,330 distinct jobs / 4,886 title/description mentions. The query LANGUAGE — never merged with DBMS products.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "SQL != Oracle, SQL != MySQL. Language vs. product.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DB-ORACLE-01",
+      "canonical_skill_name": "Oracle Database",
+      "aliases": ["Oracle", "Oracle DB"],
+      "skill_category": "Databases",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,453 distinct jobs / 4,319 title/description mentions. DBMS product — distinct from SQL.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Oracle Database product. Distinct from SQL (language) and MySQL.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-DB-MYSQL-01",
+      "canonical_skill_name": "MySQL",
+      "aliases": ["MySQL", "MySql"],
+      "skill_category": "Databases",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 748 distinct jobs / 1,345 title/description mentions. DBMS product — distinct from SQL and Oracle.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Open-source DBMS. Distinct from SQL (language) and Oracle (product).",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-WEB-HTML-01",
+      "canonical_skill_name": "HTML",
+      "aliases": ["HTML5", "Html"],
+      "skill_category": "Web Technologies",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,395 distinct jobs / 2,483 title/description mentions. Markup language — distinct from CSS.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "HTML != CSS. Structure vs. presentation.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-WEB-CSS-01",
+      "canonical_skill_name": "CSS",
+      "aliases": ["CSS3", "Css"],
+      "skill_category": "Web Technologies",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,096 distinct jobs / 1,767 title/description mentions. Stylesheet language — distinct from HTML.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "CSS != HTML. Presentation vs. structure.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-WEB-JQUERY-01",
+      "canonical_skill_name": "jQuery",
+      "aliases": ["JQuery", "Jquery"],
+      "skill_category": "Web Technologies",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,073 distinct jobs / 1,900 title/description mentions. JS library with independent job-market signal.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Distinct from JavaScript core. Could later fold into JavaScript if granularity is not needed.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-WEB-AJAX-01",
+      "canonical_skill_name": "AJAX",
+      "aliases": ["Ajax"],
+      "skill_category": "Web Technologies",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 727 distinct jobs / 1,207 title/description mentions. Real-time web technique.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Distinct from JavaScript core. NEEDS_REVIEW on long-term placement.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-OFFICE-EXCEL-01",
+      "canonical_skill_name": "Microsoft Excel",
+      "aliases": ["Excel", "MS Excel", "Advanced Excel"],
+      "skill_category": "Office & Business Tools",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,302 distinct jobs / 1,663 title/description mentions. Kept distinct from SKL-COMP-01 for standalone demand measurement.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "High-value spreadsheet competency. Separate from generic Office Productivity.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-OFFICE-ERP-01",
+      "canonical_skill_name": "Enterprise Resource Planning (ERP)",
+      "aliases": ["ERP"],
+      "skill_category": "Office & Business Tools",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,088 distinct jobs / 1,628 title/description mentions. Broad functional competency — product-level (SAP, Oracle) stay separate.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Generic ERP. SAP (SKL-SAP-01) is a distinct canonical skill.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-SAP-01",
+      "canonical_skill_name": "SAP",
+      "aliases": ["SAP ERP"],
+      "skill_category": "Enterprise Systems",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 847 distinct jobs / 3,956 title/description mentions. Dominant ERP product in the dataset. Distinct from generic ERP.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "SAP ERP system. Distinct from generic ERP competency.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-INFRA-LINUX-01",
+      "canonical_skill_name": "Linux",
+      "aliases": ["Linux"],
+      "skill_category": "Infrastructure & Operations",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,186 distinct jobs / 2,238 title/description mentions. Server OS competency — distinct from Unix.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Linux OS. Kept separate from Unix; could later share a family grouping.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-INFRA-UNIX-01",
+      "canonical_skill_name": "Unix",
+      "aliases": ["UNIX"],
+      "skill_category": "Infrastructure & Operations",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 802 distinct jobs / 1,357 title/description mentions. Distinct from Linux.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Unix OS. Kept separate from Linux.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-INFRA-CLOUD-01",
+      "canonical_skill_name": "Cloud Computing",
+      "aliases": ["Cloud"],
+      "skill_category": "Infrastructure & Operations",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,040 distinct jobs / 2,090 title/description mentions. Broad label — product-level (AWS, Azure, GCP) could stay separate.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Generic cloud competency. AWS (224 jobs), Azure (169 jobs), GCP (20 jobs) are sub-threshold but could become separate skills.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-INFRA-NETWORK-01",
+      "canonical_skill_name": "Computer Networking",
+      "aliases": ["Network", "Networking", "Computer Networking"],
+      "skill_category": "Infrastructure & Operations",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 2,036 distinct jobs (network) + 1,445 jobs (networking). Merged into one canonical skill — same competency family.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "network + networking are the same competency family, unlike technologies in different families.",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-INFRA-WEBSERVICES-01",
+      "canonical_skill_name": "Web Services & APIs",
+      "aliases": ["Web Services", "Web Service"],
+      "skill_category": "Infrastructure & Operations",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 1,009 distinct jobs / 1,491 title/description mentions. Inter-system communication competency.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Broad web-services competency. REST API is a sub-set (73 jobs, sub-threshold for separate skill).",
+      "version": "3.0"
+    },
+    {
+      "skill_id": "SKL-QA-01",
+      "canonical_skill_name": "Software Testing & QA",
+      "aliases": ["QA", "Quality Assurance", "Software Testing"],
+      "skill_category": "Quality Assurance",
+      "source_reference": "Naukri historical dataset (21,910 observations, 2026-09-11)",
+      "source_basis": "Discovered from 872 distinct jobs / 1,657 title/description mentions. Testing competency cluster.",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "'QA' token is role-ambiguous in some contexts. Automation/manual-testing sub-skills could stay in this cluster.",
+      "version": "3.0"
+    }
+  ]
+}

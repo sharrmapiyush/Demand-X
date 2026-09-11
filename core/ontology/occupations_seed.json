@@ -1,0 +1,83 @@
+{
+  "version": "1.0.0",
+  "source_framework": "DVET Pune ITI Haveli Verified Snapshot Trade Names",
+  "occupations": [
+    {
+      "occupation_id": "OCC-BEAUTY-01",
+      "canonical_occupation_name": "Beauty Therapist & Cosmetologist",
+      "aliases": ["Beauty Specialist", "Cosmetologist", "Hair & Skin Care Specialist"],
+      "sector": "Personal Care & Services",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Basic Cosmetology",
+      "source_type": "VERIFIED_SNAPSHOT",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Inferred from Basic Cosmetology trade name; awaiting official occupational standards mapping.",
+      "version": "1.0"
+    },
+    {
+      "occupation_id": "OCC-COMP-01",
+      "canonical_occupation_name": "Computer Operator & Office Assistant",
+      "aliases": ["Data Entry Operator", "Office Assistant", "COPA Operator"],
+      "sector": "IT-ITeS",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Computer Operator and Programming Assistant",
+      "source_type": "VERIFIED_SNAPSHOT",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Inferred from Computer Operator and Programming Assistant trade name; awaiting official occupational standards mapping.",
+      "version": "1.0"
+    },
+    {
+      "occupation_id": "OCC-FASHION-01",
+      "canonical_occupation_name": "Fashion Designer & Garment Technician",
+      "aliases": ["Garment Maker", "Tailor & Pattern Maker", "Fashion Technician"],
+      "sector": "Textile & Apparel",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Fashion Design & Technology",
+      "source_type": "VERIFIED_SNAPSHOT",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Inferred from Fashion Design & Technology trade name; awaiting official occupational standards mapping.",
+      "version": "1.0"
+    },
+    {
+      "occupation_id": "OCC-ICT-01",
+      "canonical_occupation_name": "ICT Hardware & Systems Technician",
+      "aliases": ["Computer Hardware Technician", "System Maintenance Technician", "IT Support Specialist"],
+      "sector": "Electronics & IT Hardware",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Information & Communication Technology System Maintenance",
+      "source_type": "VERIFIED_SNAPSHOT",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Inferred from Information & Communication Technology System Maintenance trade name; awaiting official occupational standards mapping.",
+      "version": "1.0"
+    },
+    {
+      "occupation_id": "OCC-MACH-01",
+      "canonical_occupation_name": "Machinist & Toolroom Technician",
+      "aliases": ["Lathe Operator", "Precision Machinist", "Machine Tool Operator"],
+      "sector": "Automotive & Manufacturing",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Machinist",
+      "source_type": "VERIFIED_SNAPSHOT",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Inferred from Machinist trade name; awaiting official occupational standards mapping.",
+      "version": "1.0"
+    },
+    {
+      "occupation_id": "OCC-AUTO-01",
+      "canonical_occupation_name": "Automotive Mechanic & Service Technician",
+      "aliases": ["Motor Vehicle Mechanic", "Automotive Technician", "Vehicle Service Mechanic"],
+      "sector": "Automotive & Manufacturing",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Mechanic (Motor Vehicle)",
+      "source_type": "VERIFIED_SNAPSHOT",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Inferred from Mechanic (Motor Vehicle) trade name; awaiting official occupational standards mapping.",
+      "version": "1.0"
+    },
+    {
+      "occupation_id": "OCC-PAINT-01",
+      "canonical_occupation_name": "Industrial & General Painter",
+      "aliases": ["Painter General", "Surface Coating Technician", "Finishing Painter"],
+      "sector": "Manufacturing & Construction",
+      "source_reference": "DVET Pune ITI Haveli Snapshot Trade: Painter General",
+      "source_type": "VERIFIED_SNAPSHOT",
+      "verification_status": "NEEDS_REVIEW",
+      "notes": "Inferred from Painter General trade name; awaiting official occupational standards mapping.",
+      "version": "1.0"
+    }
+  ]
+}
