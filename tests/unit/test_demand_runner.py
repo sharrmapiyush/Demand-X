@@ -3,6 +3,12 @@
 All tests use an SQLite in-memory DB with FK enforcement.
 The runner orchestrates source-filtered queries → calculator → DB persistence.
 """
+import sys
+from unittest.mock import MagicMock
+
+# Mock psycopg2 to prevent DLL load failure when db.session is imported.
+for _mod in ('psycopg2', 'psycopg2._psycopg', 'psycopg2.extras', 'psycopg2.extensions'):
+    sys.modules.setdefault(_mod, MagicMock())
 
 import datetime
 import pytest

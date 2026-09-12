@@ -1,0 +1,118 @@
+{
+  "classification": "UNVERIFIED_OR_INFERRED_DIRECTORY",
+  "source_claimed": "DVET Pune",
+  "verification_status": "PARTIALLY_INFERRED",
+  "records_count": 16,
+  "reason": "Directory listing obtained from official DVET Pune site, but institute detail attributes (codes, NCVT MIS codes, establishment years, trade intakes) for 15 out of 16 institutes were inferred/constructed for development scaffolding rather than individually inspected detail pages.",
+  "must_not_be_used_as_verified_official_source_data": true,
+  "source_id": "dvet-pune-unverified-directory-reference",
+  "source_name": "Directorate of Vocational Education and Training (DVET) Pune Region Unverified Directory Reference",
+  "retrieval_date": "2026-09-09",
+  "access_method": "UNVERIFIED_FIXTURE",
+  "freshness_class": "STATIC",
+  "url": "https://pune.dvet.gov.in/pune-institutes/",
+  "institutes": [
+    {
+      "institute_name": "Industrial Training Institute, Haveli",
+      "institute_code": "ITI-HAVELI-001",
+      "ncvt_mis_code": "GU27000001",
+      "institute_category": "Government ITI",
+      "address": "Tal : Haveli, Dist : Pune, Maharashtra",
+      "establishment_year": "1985",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "source_url": "https://pune.dvet.gov.in/pune-institutes/",
+      "trades_count": 7
+    },
+    {
+      "institute_name": "Industrial Training Institute, Pune (Aundh)",
+      "institute_code": "ITI-PUNE-002",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Mulshi",
+      "institute_code": "ITI-MULSHI-003",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Baramati",
+      "institute_code": "ITI-BARAMATI-004",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Daund",
+      "institute_code": "ITI-DAUND-005",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Indapur",
+      "institute_code": "ITI-INDAPUR-006",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Junnar",
+      "institute_code": "ITI-JUNNAR-007",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Khed",
+      "institute_code": "ITI-KHED-008",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Maval",
+      "institute_code": "ITI-MAVAL-009",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Bhor",
+      "institute_code": "ITI-BHOR-010",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Velha",
+      "institute_code": "ITI-VELHA-011",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Shirur",
+      "institute_code": "ITI-SHIRUR-012",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Purandar",
+      "institute_code": "ITI-PURANDAR-013",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Ambegaon",
+      "institute_code": "ITI-AMBEGAON-014",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute, Pimpri Chinchwad",
+      "institute_code": "ITI-PCMC-015",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    },
+    {
+      "institute_name": "Industrial Training Institute (Women), Pune",
+      "institute_code": "ITI-WOMEN-PUNE-016",
+      "district": "Pune",
+      "status": "Inferred/Unverified detail attributes"
+    }
+  ]
+}
