@@ -10,7 +10,7 @@ Not copied from reference:
 
 import time
 import logging
-from typing import Dict
+from typing import Dict, Any
 from dataclasses import dataclass, field
 import threading
 

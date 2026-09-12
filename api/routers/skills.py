@@ -2,11 +2,37 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
-from typing import Optional
+from typing import Optional, List
 
 from api.config import settings
 
 router = APIRouter(prefix="/api/v1/skills", tags=["skills"])
+
+# Canonical sector → database sector value mapping
+# Maps user-facing canonical sector names to exact DB values
+SECTOR_ALIASES: dict[str, list[str]] = {
+    "IT-ITeS": [
+        "IT-Software / Software Services",
+        "BPO / Call Centre / ITES",
+        "IT-Hardware & Networking",
+    ],
+    "IT-Software": ["IT-Software / Software Services"],
+    "ITES": ["BPO / Call Centre / ITES"],
+    "IT-Hardware": ["IT-Hardware & Networking"],
+    "Automotive": ["Automobile / Auto Anciliary / Auto Components"],
+    "Banking": ["Banking / Financial Services / Broking"],
+    "Education": ["Education / Teaching / Training"],
+    "Healthcare": ["Medical / Healthcare / Hospitals", "Pharma / Biotech / Clinical Research"],
+    "Manufacturing": ["Construction / Engineering / Cement / Metals", "Industrial Products / Heavy Machinery"],
+    "BFSI": ["Banking / Financial Services / Broking", "Insurance", "Accounting / Finance"],
+}
+
+
+def _resolve_sector_filter(sector: Optional[str]) -> Optional[List[str]]:
+    """Resolve canonical sector name to list of DB sector values."""
+    if not sector:
+        return None
+    return SECTOR_ALIASES.get(sector, [sector])
 
 
 @router.get("/demand")
@@ -24,11 +50,13 @@ def skill_demand(
     """
     from core.analytics.skill_demand_engine import calculate_skill_demand
 
+    resolved_sector = _resolve_sector_filter(sector)
+
     report = calculate_skill_demand(
         db_url=settings.DATABASE_URL,
         source_id=source_id,
         district=district,
-        sector=sector,
+        sector=resolved_sector,
     )
 
     rows = [
@@ -123,11 +151,13 @@ def skill_gaps(
     from core.analytics.skill_demand_engine import calculate_skill_demand
     from core.analytics.skill_gap_engine import calculate_skill_gap
 
+    resolved_sector = _resolve_sector_filter(sector)
+
     demand_report = calculate_skill_demand(
         db_url=settings.DATABASE_URL,
         source_id=source_id,
         district=district,
-        sector=sector,
+        sector=resolved_sector,
     )
     gap_report = calculate_skill_gap(demand_report)
     return {
@@ -155,11 +185,13 @@ def skill_gap_detail(
     from core.analytics.skill_demand_engine import calculate_skill_demand
     from core.analytics.skill_gap_engine import calculate_skill_gap
 
+    resolved_sector = _resolve_sector_filter(sector)
+
     demand_report = calculate_skill_demand(
         db_url=settings.DATABASE_URL,
         source_id=source_id,
         district=district,
-        sector=sector,
+        sector=resolved_sector,
     )
     gap_report = calculate_skill_gap(demand_report)
     for row in gap_report["gap_rows"]:
@@ -180,11 +212,13 @@ def skill_recommendations(
     from core.analytics.skill_demand_engine import calculate_skill_demand
     from core.analytics.skill_gap_engine import calculate_skill_gap
 
+    resolved_sector = _resolve_sector_filter(sector)
+
     demand_report = calculate_skill_demand(
         db_url=settings.DATABASE_URL,
         source_id=source_id,
         district=district,
-        sector=sector,
+        sector=resolved_sector,
     )
     gap_report = calculate_skill_gap(demand_report)
     recs = []

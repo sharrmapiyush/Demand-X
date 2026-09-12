@@ -110,7 +110,7 @@ def calculate_skill_demand(
     db_url: str,
     source_id: str = DEFAULT_SOURCE_ID,
     district: Optional[str] = None,
-    sector: Optional[str] = None,
+    sector: Optional[str | List[str]] = None,
     observation_period_start: Optional[date] = None,
     observation_period_end: Optional[date] = None,
     rule_version: str = DEFAULT_RULE_VERSION,
@@ -153,7 +153,10 @@ def calculate_skill_demand(
         if district:
             filters.append(JobPosting.district == district)
         if sector:
-            filters.append(JobPosting.sector == sector)
+            if isinstance(sector, list):
+                filters.append(JobPosting.sector.in_(sector))
+            else:
+                filters.append(JobPosting.sector == sector)
         if observation_period_start:
             filters.append(
                 JobPosting.retrieved_at
