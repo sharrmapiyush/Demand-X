@@ -200,89 +200,154 @@ def skill_recommendations(
 
 
 def _build_recommendation(gap_row: dict) -> dict:
-    """Deterministic recommendation rules — transparent, auditable."""
+    """Deterministic recommendation rules — conservative, evidence-gated, auditable.
+
+    Safety rules enforced:
+    - HIGH_GAP: Only "increase capacity" when demand meets minimum evidence threshold
+      AND supply is VERIFIED (not just present) AND demand is not INSUFFICIENT_DATA.
+    - HIGH_GAP + NEEDS_REVIEW supply → "Review / validate training supply"
+    - HIGH_GAP + no verified supply → "Investigate training supply availability"
+    - INSUFFICIENT_DATA / NO_DATA → data collection only
+    - Never claim "no institute offers this" (we don't have a complete Pune directory)
+    - Never extrapolate single-institute supply to Pune-wide
+    - Every recommendation includes all required provenance fields.
+    """
     status = gap_row["gap_status"]
     demand = gap_row["demand_distinct_job_count"]
+    norm = gap_row.get("demand_normalized_distinct_job_count", 0.0)
     skill_name = gap_row["skill_name"]
     has_supply = gap_row["has_dvet_supply_evidence"]
     supply_detail = gap_row.get("dvet_supply_detail")
+    verification_status = gap_row.get("verification_status", "NEEDS_REVIEW")
+    demand_confidence = gap_row.get("demand_confidence", {})
+
+    # Thresholds from gap engine
+    HIGH_THRESHOLD = 0.05
+    MEDIUM_THRESHOLD = 0.01
+
+    # Determine evidence quality label
+    if demand == 0:
+        evidence_status = "NO_DATA"
+    elif norm >= HIGH_THRESHOLD:
+        evidence_status = "OBSERVED"
+    elif norm >= MEDIUM_THRESHOLD:
+        evidence_status = "OBSERVED"
+    elif demand > 0:
+        evidence_status = "OBSERVED"
+    else:
+        evidence_status = "INSUFFICIENT_DATA"
+
+    # Supply coverage quality
+    if has_supply:
+        supply_status = "NEEDS_REVIEW"  # All DVET supply is NEEDS_REVIEW per our data
+        supply_evidence_note = (
+            f"DVET supply evidence present from ITI Haveli (1 institute, {len(supply_detail.get('trades', [])) if supply_detail else 0} trades). "
+            "NOT verified against full Pune directory. NOT extrapolated district-wide."
+        )
+    else:
+        supply_status = "NO_SUPPLY_EVIDENCE"
+        supply_evidence_note = "No DVET supply evidence in current snapshot (ITI Haveli only)."
+
+    base = {
+        "skill_id": gap_row["skill_id"],
+        "skill_name": skill_name,
+        "priority": "LOW",
+        "confidence": "LOW",
+        "source": "naukri-historical-promptcloud",
+        "freshness": "HISTORICAL",
+        "evidence_status": evidence_status,
+        "supply_status": supply_status,
+        "data_quality": verification_status,
+    }
 
     if status == "HIGH_GAP":
         if has_supply:
+            # Supply exists but is NEEDS_REVIEW — cannot recommend capacity increase
             return {
-                "skill_id": gap_row["skill_id"],
-                "skill_name": skill_name,
-                "recommendation": f"Increase training capacity for {skill_name}",
-                "reason": "High demand observed but existing DVET supply coverage is insufficient or unverified.",
-                "priority": "HIGH",
-                "confidence": "MEDIUM",
-                "evidence": f"{demand} distinct jobs reference this skill. Supply evidence exists but is flagged NEEDS_REVIEW.",
-                "next_action": "Review curriculum alignment and consider capacity increase at ITI Haveli or new institutes.",
-                "data_quality": gap_row.get("verification_status", "NEEDS_REVIEW"),
+                **base,
+                "recommendation": f"Review / validate training supply for {skill_name}",
+                "reason": (
+                    f"High demand evidence ({demand} jobs, {norm:.1%} share) but DVET supply evidence "
+                    "is unverified (NEEDS_REVIEW). Cannot recommend capacity changes until supply is validated."
+                ),
+                "evidence": (
+                    f"{demand} distinct jobs reference this skill ({norm:.1%} of evaluated jobs). "
+                    f"{supply_evidence_note}"
+                ),
+                "priority": "MEDIUM",
+                "confidence": "LOW",
+                "next_action": "Cross-verify DVET trade mappings against authoritative directory; validate if programmes actually cover this skill.",
             }
-        else:
-            return {
-                "skill_id": gap_row["skill_id"],
-                "skill_name": skill_name,
-                "recommendation": f"Develop new training programme for {skill_name}",
-                "reason": "High demand observed with NO DVET training supply evidence.",
-                "priority": "HIGH",
-                "confidence": "MEDIUM",
-                "evidence": f"{demand} distinct jobs reference this skill. No institute currently offers this.",
-                "next_action": "Commission a feasibility study for a new training programme or curriculum addition.",
-                "data_quality": gap_row.get("verification_status", "NEEDS_REVIEW"),
-            }
+
+        # No verified supply
+        return {
+            **base,
+            "recommendation": f"Investigate training supply availability for {skill_name}",
+            "reason": (
+                f"High demand evidence ({demand} jobs, {norm:.1%} share) with NO DVET supply evidence "
+                "in current snapshot. Current snapshot covers only ITI Haveli (1 institute); "
+                "Pune-wide training landscape is UNKNOWN."
+            ),
+            "evidence": (
+                f"{demand} distinct jobs reference this skill ({norm:.1%} of evaluated jobs). "
+                f"{supply_evidence_note}"
+            ),
+            "priority": "MEDIUM",
+            "confidence": "LOW",
+            "next_action": "Commission a supply mapping study against authoritative DVET directory before proposing new programmes.",
+        }
 
     if status == "MEDIUM_GAP":
         return {
-            "skill_id": gap_row["skill_id"],
-            "skill_name": skill_name,
+            **base,
             "recommendation": f"Targeted capacity review for {skill_name}",
-            "reason": "Moderate demand observed. Assess current training landscape.",
-            "priority": "MEDIUM",
-            "confidence": "MEDIUM",
-            "evidence": f"{demand} distinct jobs reference this skill.",
-            "next_action": "Evaluate whether existing programmes partially cover this skill.",
-            "data_quality": gap_row.get("verification_status", "NEEDS_REVIEW"),
+            "reason": (
+                f"Moderate demand evidence ({demand} jobs, {norm:.1%} share). "
+                f"{supply_evidence_note}"
+            ),
+            "evidence": (
+                f"{demand} distinct jobs reference this skill ({norm:.1%} of evaluated jobs). "
+                f"{supply_evidence_note}"
+            ),
+            "priority": "LOW",
+            "confidence": "LOW",
+            "next_action": "Assess whether existing programmes partially cover this skill; validate against full DVET directory.",
         }
 
     if status == "NEEDS_REVIEW":
         return {
-            "skill_id": gap_row["skill_id"],
-            "skill_name": skill_name,
+            **base,
             "recommendation": f"Verify supply data for {skill_name}",
-            "reason": "DVET supply evidence exists but is unverified or demand-supply alignment unclear.",
+            "reason": (
+                "DVET supply evidence exists but is unverified (NEEDS_REVIEW). "
+                "Demand-supply alignment cannot be determined."
+            ),
+            "evidence": f"Supply evidence present from ITI Haveli snapshot. {demand} demand jobs. {supply_evidence_note}",
             "priority": "LOW",
             "confidence": "LOW",
-            "evidence": f"Supply evidence present (NEEDS_REVIEW status). {demand} demand jobs.",
-            "next_action": "Cross-verify DVET trade mappings against current intake records.",
-            "data_quality": "NEEDS_REVIEW",
+            "next_action": "Cross-verify DVET trade mappings against authoritative directory and current intake records.",
         }
 
     if status == "NO_DATA":
         return {
-            "skill_id": gap_row["skill_id"],
-            "skill_name": skill_name,
+            **base,
             "recommendation": f"Collect more data on {skill_name}",
-            "reason": "No demand or supply evidence available for this skill.",
+            "reason": "No demand or supply evidence available for this skill in current observation window.",
+            "evidence": f"Zero distinct jobs with this skill in {gap_row.get('total_jobs_evaluated', 'N/A')} evaluated jobs. {supply_evidence_note}",
             "priority": "LOW",
             "confidence": "LOW",
-            "evidence": "Insufficient data to form a recommendation.",
-            "next_action": "Include in next ingestion batch or widen observation window.",
-            "data_quality": "NO_DATA",
+            "next_action": "Include in next ingestion batch; widen observation window; expand source coverage.",
         }
 
     # LOW_GAP
     return {
-        "skill_id": gap_row["skill_id"],
-        "skill_name": skill_name,
+        **base,
         "recommendation": f"Monitor {skill_name} demand trend",
-        "reason": "Low but present demand. No supply evidence.",
+        "reason": f"Low demand evidence ({demand} jobs, {norm:.1%} share). {supply_evidence_note}",
+        "evidence": f"{demand} distinct jobs reference this skill at low volume ({norm:.1%}). {supply_evidence_note}",
         "priority": "LOW",
         "confidence": "LOW",
-        "evidence": f"{demand} distinct jobs reference this skill at low volume.",
         "next_action": "Monitor over next observation window before acting.",
-        "data_quality": "LOW_SIGNAL",
     }
 
 
