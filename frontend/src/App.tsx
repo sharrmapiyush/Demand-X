@@ -1,741 +1,1005 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, Legend,
 } from 'recharts'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface HealthResponse {
-  status: string
-  app_name: string
-  environment: string
-  database: string
-  pilot_district: string
-  sectors: string[]
-}
+// ═══════════════════════════════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface JobStats {
-  total: number
-  with_district: number
-  without_district: number
-  by_district: Record<string, number>
-  by_source: Record<string, number>
+  total: number; with_district: number; without_district: number;
+  by_district: Record<string, number>; by_source: Record<string, number>;
 }
-
 interface SkillDemandRow {
-  skill_id: string
-  skill_name: string
-  distinct_job_count: number
-  mention_count: number
-  normalized_distinct_job_count: number
-  confidence: Record<string, number>
-  evidence_type_breakdown: Record<string, number>
-  verification_status: string
+  skill_id: string; skill_name: string; distinct_job_count: number;
+  mention_count: number; normalized_distinct_job_count: number;
+  confidence: Record<string, number>; evidence_type_breakdown: Record<string, number>;
+  verification_status: string;
 }
-
 interface SkillDemandResponse {
-  rows: SkillDemandRow[]
-  total_jobs_evaluated: number
-  jobs_with_skill_evidence: number
-  skills_with_evidence: number
-  total_evidence_rows: number
-  source_id: string
-  run_id: string
+  rows: SkillDemandRow[]; total_jobs_evaluated: number;
+  jobs_with_skill_evidence: number; skills_with_evidence: number;
+  total_evidence_rows: number; source_id: string; observation_period: [string, string];
+  rule_version: string;
+  run_id: string;
+  district: string | null; sector: string | null;
 }
-
-interface DistrictDemandRow {
-  id: string
-  district: string
-  occupation_id: string
-  job_count: number
-  apprenticeship_count: number
-  demand_score: number | null
-  data_completeness_status: string
-  rule_version: string
+interface GapRow {
+  skill_id: string; skill_name: string; gap_status: string;
+  demand_distinct_job_count: number; demand_mention_count: number;
+  demand_normalized_distinct_job_count: number;
+  has_dvet_supply_evidence: boolean;
+  dvet_supply_detail: any; demand_confidence: Record<string, number>;
+  verification_status: string;
 }
-
-interface SourcePolicy {
-  source_id: string
-  source_name: string
-  source_category: string
-  authorization_status: string
-  robots_status: string
-  enabled: boolean
+interface GapResponse {
+  rows: GapRow[]; count: number; total_jobs_evaluated: number;
+  gap_summary: Record<string, number>; gap_thresholds: any;
+  dvet_institute_count: number; dvet_trades_total: number;
+  dvet_extrapolation_note: string;
 }
-
-interface SourceHealth {
-  source_id: string
-  source_name: string
-  status: string
-  last_fetched_at: string | null
-  freshness_class: string
-  reliability_notes: string | null
+interface Recommendation {
+  skill_id: string; skill_name: string; recommendation: string;
+  reason: string; priority: string; confidence: string;
+  evidence: string; next_action: string; data_quality: string;
 }
-
+interface RecommendationsResponse {
+  recommendations: Recommendation[]; count: number;
+  total_jobs_evaluated: number; rule_version: string; note: string;
+}
 interface DvetSupply {
-  skills_with_supply: Record<string, string[]>
-  trades_count: number
-  skills_count: number
-  note: string
+  snapshot_source: string; institute_count: number; institute_name: string;
+  total_trades: number; total_intake: number;
+  skills_with_supply_evidence: Record<string, { trades: string[]; count: number }>;
+  occupations_with_supply_evidence: Record<string, { trades: string[]; count: number }>;
+  extrapolation_note: string;
 }
-
+interface SourceHealth {
+  source_id: string; source_name: string; status: string;
+  last_fetched_at: string | null; freshness_class: string; reliability_notes: string | null;
+}
 interface RAGResponse {
-  answer: string
-  confidence: string
-  evidence_count: number
-  source_freshness: string
-  disclaimer: string
-  evidence: Array<{ type: string; id: string; title: string; snippet: string }>
+  answer: string; confidence: string; evidence_count: number;
+  source_freshness: string; disclaimer: string;
+  evidence: Array<{ type: string; id: string; title: string; snippet: string }>;
 }
 
-// ─── Color palette ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Design tokens
+// ═══════════════════════════════════════════════════════════════════════════════
 
-const COLORS = {
-  navy: '#0B3D66',
-  teal: '#0E7C7B',
-  gold: '#C9960C',
-  green: '#1E8E5A',
-  red: '#C53030',
-  blue: '#3182CE',
-  gray: '#5B6B79',
-  lightBg: '#F0F4F8',
-  border: '#DCE3E8',
-  white: '#FFFFFF',
-  darkText: '#1A2733',
+const C = {
+  navy: '#0B3D66', navyDark: '#082A47', teal: '#0E7C7B', tealLight: '#E6F5F4',
+  gold: '#C9960C', goldLight: '#FFF8E6', green: '#1E8E5A', greenLight: '#E6F7EF',
+  red: '#C53030', redLight: '#FFF5F5', blue: '#3182CE', blueLight: '#EBF4FF',
+  gray: '#5B6B79', grayLight: '#94A3B8', grayXLight: '#CBD5E1',
+  lightBg: '#F0F4F8', border: '#DCE3E8', borderLight: '#E8EDF2',
+  white: '#FFFFFF', dark: '#1A2733', darkSubtle: '#374151',
+  bg: '#F7F9FC', sidebarW: 240,
 }
-const PIE_COLORS = ['#0B3D66', '#0E7C7B', '#C9960C', '#3182CE', '#1E8E5A', '#805AD5', '#DD6B20', '#E53E3E']
+const PIE = ['#0B3D66','#0E7C7B','#C9960C','#3182CE','#1E8E5A','#805AD5','#DD6B20','#E53E3E']
 
-// ─── Fetch hook ───────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Hooks & shared components
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function useFetch<T>(url: string) {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
   useEffect(() => {
-    setLoading(true)
-    setError(null)
-    fetch(url)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+    setLoading(true); setError(null)
+    fetch(url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then(d => { setData(d); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
   }, [url])
-
   return { data, loading, error }
 }
 
-// ─── Shared components ────────────────────────────────────────────────────────
-
-function Card({ title, children, className }: { title?: string; children: React.ReactNode; className?: string }) {
+function KPICard({ label, value, sub, color, icon }: {
+  label: string; value: string | number; sub?: string; color?: string; icon?: string;
+}) {
   return (
     <div style={{
-      backgroundColor: COLORS.white, borderRadius: 8, border: `1px solid ${COLORS.border}`,
-      padding: '20px 24px', marginBottom: 20, ...(className ? {} : {}),
+      background: C.white, border: `1px solid ${C.border}`, borderRadius: 10,
+      padding: '18px 20px', minWidth: 170, flex: '1 1 170px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
     }}>
-      {title && <h3 style={{ margin: '0 0 12px 0', fontSize: 15, color: COLORS.darkText, fontWeight: 600 }}>{title}</h3>}
-      {children}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ fontSize: 11, color: C.gray, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 500 }}>
+          {label}
+        </div>
+        {icon && <span style={{ fontSize: 16, opacity: 0.6 }}>{icon}</span>}
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: color || C.dark, marginTop: 6, lineHeight: 1.1 }}>
+        {value}
+      </div>
+      {sub && <div style={{ fontSize: 12, color: C.gray, marginTop: 4 }}>{sub}</div>}
     </div>
   )
 }
 
-function KPICard({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
-  return (
-    <div style={{
-      padding: '16px 20px', border: `1px solid ${COLORS.border}`, borderRadius: 6,
-      backgroundColor: COLORS.white, minWidth: 180,
-    }}>
-      <div style={{ fontSize: 11, color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: color || COLORS.darkText, marginTop: 4 }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 2 }}>{sub}</div>}
-    </div>
-  )
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colorMap: Record<string, string> = {
-    ONLINE: COLORS.green, DEGRADED: COLORS.gold, OFFLINE: COLORS.red, BLOCKED: COLORS.red,
-    HISTORICAL: COLORS.gray, PERIODIC: COLORS.teal, LIVE: COLORS.green, STATIC: COLORS.gray,
-    NEEDS_REVIEW: COLORS.gold, VERIFIED: COLORS.green,
+function Badge({ status, size }: { status: string; size?: 'sm' | 'md' }) {
+  const map: Record<string, [string, string]> = {
+    ONLINE: [C.green, C.greenLight], DEGRADED: [C.gold, C.goldLight], OFFLINE: [C.red, C.redLight],
+    HISTORICAL: [C.gray, C.lightBg], PERIODIC: [C.teal, C.tealLight], LIVE: [C.green, C.greenLight],
+    STATIC: [C.gray, C.lightBg], NEEDS_REVIEW: [C.gold, C.goldLight], VERIFIED: [C.green, C.greenLight],
+    HIGH_GAP: [C.red, C.redLight], MEDIUM_GAP: [C.gold, C.goldLight], LOW_GAP: [C.teal, C.tealLight],
+    NO_DATA: [C.gray, C.lightBg], OBSERVED: [C.green, C.greenLight], ESTIMATED: [C.gold, C.goldLight],
+    BLOCKED: [C.red, C.redLight], HIGH: [C.red, C.redLight], MEDIUM: [C.gold, C.goldLight],
+    LOW: [C.gray, C.lightBg],
   }
+  const [fg, bg] = map[status] || [C.gray, C.lightBg]
+  const fs = size === 'sm' ? 10 : 11
   return (
     <span style={{
-      display: 'inline-block', padding: '2px 8px', borderRadius: 4,
-      fontSize: 11, fontWeight: 600, color: COLORS.white,
-      backgroundColor: colorMap[status] || COLORS.gray,
+      display: 'inline-block', padding: size === 'sm' ? '1px 6px' : '2px 8px',
+      borderRadius: 4, fontSize: fs, fontWeight: 600, color: fg, backgroundColor: bg,
+      whiteSpace: 'nowrap',
     }}>{status}</span>
   )
 }
 
-function ProvenanceNote({ children }: { children: React.ReactNode }) {
+function Card({ title, children, style, right }: {
+  title?: string; children: React.ReactNode; style?: React.CSSProperties; right?: React.ReactNode;
+}) {
   return (
     <div style={{
-      display: 'inline-block', padding: '5px 12px', backgroundColor: COLORS.lightBg,
-      border: `1px solid ${COLORS.border}`, borderRadius: 4, fontSize: 11, color: COLORS.gray,
-      fontFamily: 'monospace', marginTop: 8,
+      background: C.white, borderRadius: 10, border: `1px solid ${C.border}`,
+      padding: '20px 24px', marginBottom: 20,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)', ...style,
     }}>
+      {title && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: C.dark }}>{title}</h3>
+          {right}
+        </div>
+      )}
       {children}
     </div>
   )
 }
 
-// ─── Tab: Overview ────────────────────────────────────────────────────────────
+function Provenance({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      display: 'inline-block', padding: '5px 12px', backgroundColor: C.lightBg,
+      border: `1px solid ${C.borderLight}`, borderRadius: 4, fontSize: 11, color: C.gray,
+      fontFamily: "'SF Mono', 'Consolas', monospace", marginTop: 10,
+    }}>{children}</div>
+  )
+}
 
-function OverviewTab() {
-  const health = useFetch<HealthResponse>('/api/v1/health')
-  const jobStats = useFetch<JobStats>('/api/v1/jobs/stats')
-  const skillDemand = useFetch<SkillDemandResponse>('/api/v1/skills/demand?limit=32')
+function Loading() {
+  return <div style={{ padding: 20, color: C.gray, fontSize: 13 }}>Loading…</div>
+}
 
-  const h = health.data
-  const js = jobStats.data
-  const sd = skillDemand.data
+function ErrorMsg({ msg }: { msg: string }) {
+  return (
+    <div style={{ padding: 12, backgroundColor: C.redLight, border: `1px solid #FEB2B2`,
+      borderRadius: 6, color: '#9B2C2C', fontSize: 13 }}>
+      Error: {msg}
+    </div>
+  )
+}
+
+function Empty({ msg }: { msg: string }) {
+  return <p style={{ color: C.gray, fontSize: 13, padding: 10 }}>{msg}</p>
+}
+
+function EvidenceDrawer({ open, onClose, children }: {
+  open: boolean; onClose: () => void; children: React.ReactNode;
+}) {
+  if (!open) return null
+  return (
+    <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 480, maxWidth: '100vw',
+      background: C.white, boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', zIndex: 1000,
+      display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex',
+        justifyContent: 'space-between', alignItems: 'center' }}>
+        <strong style={{ fontSize: 15 }}>Evidence & Details</strong>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20,
+          cursor: 'pointer', color: C.gray }}>✕</button>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>{children}</div>
+    </div>
+  )
+}
+
+function FilterBar({ district, setDistrict, sector, setSector }: {
+  district: string; setDistrict: (v: string) => void;
+  sector: string; setSector: (v: string) => void;
+}) {
+  const districts = ['', 'Pune', 'Mumbai', 'Nashik', 'Nagpur', 'Thane', 'Aurangabad',
+    'Kolhapur', 'Solapur', 'Satara', 'Ahmednagar', 'Jalgaon']
+  const sectors = ['', 'IT-ITeS', 'Automotive/Manufacturing', 'Electronics', 'Personal Care']
+  const selectStyle: React.CSSProperties = {
+    padding: '7px 12px', border: `1px solid ${C.border}`, borderRadius: 6,
+    fontSize: 13, backgroundColor: C.white, color: C.dark, cursor: 'pointer', minWidth: 160,
+  }
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 12, color: C.gray, fontWeight: 500 }}>DISTRICT</span>
+      <select value={district} onChange={e => setDistrict(e.target.value)} style={selectStyle}>
+        <option value="">All Districts</option>
+        {districts.filter(Boolean).map(d => <option key={d} value={d}>{d}</option>)}
+      </select>
+      <span style={{ fontSize: 12, color: C.gray, fontWeight: 500 }}>SECTOR</span>
+      <select value={sector} onChange={e => setSector(e.target.value)} style={selectStyle}>
+        <option value="">All Sectors</option>
+        {sectors.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
+      </select>
+    </div>
+  )
+}
+
+function DataTable({ columns, rows, onRowClick }: {
+  columns: { key: string; label: string; align?: string; width?: number; render?: (v: any, row: any) => React.ReactNode }[];
+  rows: any[]; onRowClick?: (row: any) => void;
+}) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <thead>
+          <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+            {columns.map(c => (
+              <th key={c.key} style={{
+                padding: '8px 10px', textAlign: (c.align as any) || 'left',
+                fontSize: 11, color: C.gray, textTransform: 'uppercase', letterSpacing: 0.4,
+                fontWeight: 600, width: c.width,
+              }}>{c.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} style={{
+              borderBottom: `1px solid ${C.borderLight}`, cursor: onRowClick ? 'pointer' : 'default',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = C.lightBg }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
+            onClick={() => onRowClick?.(row)}
+            >
+              {columns.map(c => (
+                <td key={c.key} style={{
+                  padding: '7px 10px', textAlign: (c.align as any) || 'left',
+                }}>
+                  {c.render ? c.render(row[c.key], row) : row[c.key]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {rows.length === 0 && <Empty msg="No data available for current filters." />}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Page: Dashboard
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function DashboardPage({ district, sector }: { district: string; sector: string }) {
+  const q = `?source_id=naukri-historical-promptcloud${district ? `&district=${district}` : ''}${sector ? `&sector=${sector}` : ''}`
+  const jobs = useFetch<JobStats>('/api/v1/jobs/stats')
+  const skillDemand = useFetch<SkillDemandResponse>(`/api/v1/skills/demand${q}&limit=10`)
+  const gaps = useFetch<GapResponse>(`/api/v1/skills/gaps${q}`)
+  const supply = useFetch<{ dvet_supply_summary: DvetSupply }>('/api/v1/skills/supply')
+  const sources = useFetch<{ sources: SourceHealth[] }>('/api/v1/governance/health')
+
+  const topSkills = useMemo(() => {
+    if (!skillDemand.data) return []
+    return skillDemand.data.rows.slice(0, 8)
+  }, [skillDemand.data])
+
+  const highGaps = useMemo(() => {
+    if (!gaps.data) return []
+    return gaps.data.rows.filter(r => r.gap_status === 'HIGH_GAP')
+  }, [gaps.data])
+
+  const distChart = useMemo(() => {
+    if (!jobs.data) return []
+    return Object.entries(jobs.data.by_district)
+      .sort((a, b) => b[1] - a[1]).slice(0, 10)
+      .map(([d, c]) => ({ district: d.length > 12 ? d.slice(0, 10) + '…' : d, full: d, jobs: c }))
+  }, [jobs.data])
+
+  const occChart = useMemo(() => {
+    if (!gaps.data) return []
+    return [
+      { name: 'HIGH_GAP', value: gaps.data.gap_summary.HIGH_GAP || 0 },
+      { name: 'MEDIUM_GAP', value: gaps.data.gap_summary.MEDIUM_GAP || 0 },
+      { name: 'LOW_GAP', value: gaps.data.gap_summary.LOW_GAP || 0 },
+      { name: 'NEEDS_REVIEW', value: gaps.data.gap_summary.NEEDS_REVIEW || 0 },
+      { name: 'NO_DATA', value: gaps.data.gap_summary.NO_DATA || 0 },
+    ].filter(x => x.value > 0)
+  }, [gaps.data])
+
+  const location = district || 'All Districts'
+  const secLabel = sector || 'All Sectors'
 
   return (
     <>
-      <Card title="System Health">
-        {health.loading ? <p style={{ color: COLORS.gray }}>Checking API…</p> :
-         health.error ? (
-          <div style={{ padding: 12, backgroundColor: '#FFF5F5', border: '1px solid #FEB2B2', borderRadius: 6, color: '#9B2C2C', fontSize: 13 }}>
-            API unreachable: {health.error}
+      {/* Demo insights */}
+      <Card title="Key Findings" style={{ borderLeft: `4px solid ${C.teal}`, background: '#FAFCFD' }}>
+        <div style={{ fontSize: 13, color: C.darkSubtle, lineHeight: 1.8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <strong>📍 Location:</strong> {location} · <strong>Sector:</strong> {secLabel}
+            </div>
+            <div>
+              <strong>📊 Jobs analyzed:</strong> {jobs.data?.total?.toLocaleString() || '—'}
+            </div>
+            <div>
+              <strong>🎯 Skills with evidence:</strong> {skillDemand.data?.skills_with_evidence || '—'} of 32 canonical
+            </div>
+            <div>
+              <strong>⚠️ High gaps identified:</strong> {highGaps.length} skill{highGaps.length !== 1 ? 's' : ''}
+            </div>
           </div>
-        ) : h && (
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <KPICard label="API Status" value={h.status.toUpperCase()} color={h.status === 'healthy' ? COLORS.green : COLORS.gold} />
-            <KPICard label="Database" value={h.database} color={h.database === 'healthy' ? COLORS.green : COLORS.red} />
-            <KPICard label="Pilot District" value={h.pilot_district} />
-            <KPICard label="Environment" value={h.environment} />
-          </div>
-        )}
+          <Provenance>
+            Evidence-grounded. No synthetic data. Rule: {skillDemand.data?.rule_version || 'mvp-v1'} ·
+            Source: {skillDemand.data?.source_id || '—'}
+          </Provenance>
+        </div>
       </Card>
 
-      <Card title="Data Summary">
-        {jobStats.loading ? <p style={{ color: COLORS.gray }}>Loading…</p> :
-         jobStats.error ? <p style={{ color: COLORS.red }}>Error: {jobStats.error}</p> :
-         js && (
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 }}>
-            <KPICard label="Total Job Postings" value={js.total.toLocaleString()} color={COLORS.navy} />
-            <KPICard label="With District" value={js.with_district.toLocaleString()} color={COLORS.teal} />
-            <KPICard label="Without District" value={js.without_district.toLocaleString()} color={COLORS.gold} />
-            <KPICard label="Districts w/ Data" value={Object.keys(js.by_district).length} />
-            <KPICard label="Canonical Skills Hit" value={sd ? sd.skills_with_evidence : '—'} color={COLORS.green} />
-          </div>
-        )}
-        <ProvenanceNote>Verified Rule: No synthetic data. All counts are from real persisted observations.</ProvenanceNote>
-      </Card>
+      {/* KPI cards */}
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
+        <KPICard label="Total Jobs" value={jobs.data?.total?.toLocaleString() || '—'} icon="📋" color={C.navy}
+          sub={`${jobs.data?.with_district?.toLocaleString() || 0} with district evidence`} />
+        <KPICard label="Skills Tracked" value={skillDemand.data?.skills_with_evidence || 0} icon="🎯" color={C.teal}
+          sub="of 32 canonical skills" />
+        <KPICard label="Training Trades" value={supply.data?.dvet_supply_summary?.total_trades || 0} icon="🏫" color={C.gold}
+          sub={`${supply.data?.dvet_supply_summary?.institute_count || 0} institute(s)`} />
+        <KPICard label="High Skill Gaps" value={highGaps.length} icon="⚠️" color={highGaps.length > 0 ? C.red : C.green}
+          sub="demand without supply evidence" />
+        <KPICard label="Sources Online"
+          value={`${(sources.data?.sources || []).filter(s => s.status === 'ONLINE').length}/${(sources.data?.sources || []).length || 0}`}
+          icon="✅" color={C.green} sub="source health" />
+      </div>
 
-      {js && Object.keys(js.by_source).length > 0 && (
-        <Card title="Jobs by Source">
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {Object.entries(js.by_source).map(([src, cnt]) => (
-              <div key={src} style={{ padding: '8px 14px', border: `1px solid ${COLORS.border}`, borderRadius: 6, fontSize: 13 }}>
-                <span style={{ color: COLORS.gray }}>{src}:</span> <strong>{cnt.toLocaleString()}</strong>
+      {/* Charts row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+        <Card title="Top Demanded Skills">
+          {skillDemand.loading ? <Loading /> : topSkills.length === 0 ? <Empty msg="No skill demand data." /> : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topSkills.map(r => ({
+                name: r.skill_name.length > 18 ? r.skill_name.slice(0, 16) + '…' : r.skill_name,
+                full: r.skill_name, jobs: r.distinct_job_count,
+              }))} margin={{ top: 5, right: 15, bottom: 30, left: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.borderLight} />
+                <XAxis dataKey="name" angle={-30} textAnchor="end" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: any) => [v, 'Distinct Jobs']}
+                  labelFormatter={l => l} />
+                <Bar dataKey="jobs" fill={C.teal} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+
+        <Card title="Skill Gap Distribution">
+          {gaps.loading ? <Loading /> : occChart.length === 0 ? <Empty msg="No gap data." /> : (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={occChart} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                  outerRadius={100} innerRadius={40}
+                  label={({ name, value }) => `${name}: ${value}`}>
+                  {occChart.map((_, i) => <Cell key={i} fill={PIE[i % PIE.length]} />)}
+                </Pie>
+                <Legend verticalAlign="bottom" height={36} />
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+      </div>
+
+      {/* Jobs by district */}
+      {distChart.length > 0 && (
+        <Card title="Jobs by District">
+          <ResponsiveContainer width="100%" height={Math.max(240, distChart.length * 32)}>
+            <BarChart data={distChart} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 100 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.borderLight} />
+              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <YAxis dataKey="district" type="category" tick={{ fontSize: 11 }} width={95} />
+              <Tooltip formatter={(v: any) => [String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'Jobs']} />
+              <Bar dataKey="jobs" fill={C.navy} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <Provenance>District counts from persisted job_postings. {jobs.data?.without_district || 0} jobs lack district evidence.</Provenance>
+        </Card>
+      )}
+
+      {/* Source freshness */}
+      {sources.data && sources.data.sources.length > 0 && (
+        <Card title="Data Sources & Freshness">
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {sources.data.sources.map(s => (
+              <div key={s.source_id} style={{
+                padding: '10px 14px', border: `1px solid ${C.border}`, borderRadius: 8,
+                flex: '1 1 260px', background: C.white,
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{s.source_name}</div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <Badge status={s.status} /> <Badge status={s.freshness_class} size="sm" />
+                </div>
+                <div style={{ fontSize: 11, color: C.gray, marginTop: 4 }}>
+                  {s.last_fetched_at ? `Last: ${new Date(s.last_fetched_at).toLocaleDateString()}` : 'Not yet fetched'}
+                </div>
               </div>
             ))}
           </div>
+          <Provenance>Health telemetry from persisted Source registry — not fabricated.</Provenance>
         </Card>
       )}
     </>
   )
 }
 
-// ─── Tab: Demand ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Page: Skill Intelligence
+// ═══════════════════════════════════════════════════════════════════════════════
 
-function DemandTab() {
-  const demand = useFetch<{ rows: DistrictDemandRow[]; count: number }>('/api/v1/districts/demand?limit=100')
-  const jobStats = useFetch<JobStats>('/api/v1/jobs/stats')
+function SkillsPage({ district, sector }: { district: string; sector: string }) {
+  const q = `?source_id=naukri-historical-promptcloud${district ? `&district=${district}` : ''}${sector ? `&sector=${sector}` : ''}`
+  const skillDemand = useFetch<SkillDemandResponse>(`/api/v1/skills/demand${q}&limit=32`)
+  const [search, setSearch] = useState('')
+  const [selectedSkill, setSelectedSkill] = useState<SkillDemandRow | null>(null)
 
-  const districtChart = React.useMemo(() => {
-    if (!jobStats.data) return []
-    return Object.entries(jobStats.data.by_district)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 12)
-      .map(([district, count]) => ({ district, jobs: count }))
-  }, [jobStats.data])
-
-  const occupationChart = React.useMemo(() => {
-    if (!demand.data) return []
-    const occCounts: Record<string, number> = {}
-    for (const row of demand.data.rows) {
-      occCounts[row.occupation_id] = (occCounts[row.occupation_id] || 0) + row.job_count
-    }
-    return Object.entries(occCounts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, value]) => ({ name, value }))
-  }, [demand.data])
-
-  return (
-    <>
-      <Card title="Job Distribution by District">
-        {jobStats.loading ? <p style={{ color: COLORS.gray }}>Loading…</p> : districtChart.length === 0 ? (
-          <p style={{ color: COLORS.gray }}>No district data available.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={360}>
-            <BarChart data={districtChart} margin={{ top: 5, right: 20, bottom: 25, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} />
-              <XAxis dataKey="district" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey="jobs" fill={COLORS.navy} name="Job Postings" />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-        <ProvenanceNote>District counts from persisted job_postings. {jobStats.data?.without_district || 0} jobs have no district evidence.</ProvenanceNote>
-      </Card>
-
-      {occupationChart.length > 0 && (
-        <Card title="Occupation Demand Distribution">
-          <ResponsiveContainer width="100%" height={320}>
-            <PieChart>
-              <Pie data={occupationChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label={({ name, value }) => `${name}: ${value}`}>
-                {occupationChart.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
-      )}
-
-      {demand.data && demand.data.rows.length > 0 && (
-        <Card title={`District Occupation Demand (${demand.data.count} rows)`}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${COLORS.border}`, textAlign: 'left' }}>
-                  <th style={{ padding: '8px 10px' }}>District</th>
-                  <th style={{ padding: '8px 10px' }}>Occupation</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right' }}>Job Count</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right' }}>Apprenticeships</th>
-                  <th style={{ padding: '8px 10px' }}>Status</th>
-                  <th style={{ padding: '8px 10px' }}>Rule Version</th>
-                </tr>
-              </thead>
-              <tbody>
-                {demand.data.rows.slice(0, 30).map((r, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                    <td style={{ padding: '6px 10px' }}>{r.district}</td>
-                    <td style={{ padding: '6px 10px' }}>{r.occupation_id}</td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600 }}>{r.job_count}</td>
-                    <td style={{ padding: '6px 10px', textAlign: 'right' }}>{r.apprenticeship_count}</td>
-                    <td style={{ padding: '6px 10px' }}><StatusBadge status={r.data_completeness_status} /></td>
-                    <td style={{ padding: '6px 10px', fontSize: 11, color: COLORS.gray }}>{r.rule_version}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-    </>
-  )
-}
-
-// ─── Tab: Skill Gaps ─────────────────────────────────────────────────────────
-
-function SkillGapsTab() {
-  const skillDemand = useFetch<SkillDemandResponse>('/api/v1/skills/demand?limit=32')
-  const dvetSupply = useFetch<{ dvet_supply_summary: DvetSupply; note: string }>('/api/v1/skills/supply')
-
-  const skillChart = React.useMemo(() => {
+  const rows = useMemo(() => {
     if (!skillDemand.data) return []
-    return skillDemand.data.rows
-      .filter(r => r.distinct_job_count > 0)
-      .slice(0, 16)
-      .map(r => ({
-        name: r.skill_name.length > 22 ? r.skill_name.slice(0, 20) + '…' : r.skill_name,
-        fullName: r.skill_name,
-        distinct_jobs: r.distinct_job_count,
-        mentions: r.mention_count,
-        share: (r.normalized_distinct_job_count * 100).toFixed(2) + '%',
-        high: r.confidence.HIGH || 0,
-        medium: r.confidence.MEDIUM || 0,
-        low: r.confidence.LOW || 0,
-        verified: r.verification_status,
-      }))
-  }, [skillDemand.data])
+    return skillDemand.data.rows.filter(r =>
+      !search || r.skill_name.toLowerCase().includes(search.toLowerCase()) || r.skill_id.toLowerCase().includes(search.toLowerCase())
+    )
+  }, [skillDemand.data, search])
 
-  const supply = dvetSupply.data?.dvet_supply_summary
-
-  return (
-    <>
-      <Card title="Skill Demand Ranking (Canonical 32)">
-        {skillDemand.loading ? <p style={{ color: COLORS.gray }}>Loading…</p> : skillChart.length === 0 ? (
-          <p style={{ color: COLORS.gray }}>No skill demand evidence found.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={Math.max(320, skillChart.length * 28)}>
-            <BarChart data={skillChart} layout="vertical" margin={{ top: 5, right: 40, bottom: 5, left: 160 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} />
-              <XAxis type="number" tick={{ fontSize: 11 }} />
-              <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={155} />
-              <Tooltip />
-              <Bar dataKey="distinct_jobs" fill={COLORS.teal} name="Distinct Jobs" />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-        <ProvenanceNote>
-          {skillDemand.data
-            ? `${skillDemand.data.jobs_with_skill_evidence} of ${skillDemand.data.total_jobs_evaluated} jobs carry evidence · run ${skillDemand.data.run_id.slice(0, 12)}…`
-            : 'Evidence computed from persisted job_postings via canonical matcher.'}
-        </ProvenanceNote>
-      </Card>
-
-      {skillDemand.data && (
-        <Card title="Skill Evidence Details">
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${COLORS.border}`, textAlign: 'left' }}>
-                  <th style={{ padding: '6px 8px' }}>Skill</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Distinct Jobs</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Mentions</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Share</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>HIGH</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>MED</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>LOW</th>
-                  <th style={{ padding: '6px 8px' }}>Title</th>
-                  <th style={{ padding: '6px 8px' }}>Desc</th>
-                  <th style={{ padding: '6px 8px' }}>Source</th>
-                  <th style={{ padding: '6px 8px' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {skillDemand.data.rows.filter(r => r.distinct_job_count > 0).slice(0, 32).map((r, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                    <td style={{ padding: '5px 8px', fontWeight: 500 }}>{r.skill_name}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{r.distinct_job_count}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{r.mention_count}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{(r.normalized_distinct_job_count * 100).toFixed(2)}%</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', color: COLORS.green }}>{r.confidence.HIGH || 0}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', color: COLORS.gold }}>{r.confidence.MEDIUM || 0}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', color: COLORS.gray }}>{r.confidence.LOW || 0}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{r.evidence_type_breakdown.TITLE || 0}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{r.evidence_type_breakdown.DESCRIPTION || 0}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right' }}>{r.evidence_type_breakdown.SOURCE_SKILL || 0}</td>
-                    <td style={{ padding: '5px 8px' }}><StatusBadge status={r.verification_status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      <Card title="DVET Supply Coverage (Read-Only Snapshot)">
-        {dvetSupply.loading ? <p style={{ color: COLORS.gray }}>Loading…</p> :
-         supply ? (
-          <div>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-              <KPICard label="Trades in Snapshot" value={supply.trades_count || 0} />
-              <KPICard label="Skills with Supply" value={supply.skills_count || 0} color={COLORS.teal} />
-            </div>
-            {supply.skills_with_supply && Object.keys(supply.skills_with_supply).length > 0 && (
-              <div style={{ fontSize: 13 }}>
-                {Object.entries(supply.skills_with_supply).map(([skillId, trades]) => (
-                  <div key={skillId} style={{ marginBottom: 4 }}>
-                    <strong>{skillId}</strong>: {trades.join(', ')}
-                  </div>
-                ))}
-              </div>
-            )}
-            <ProvenanceNote>{supply.note || 'DVET snapshot covers a single institute; supply is NOT extrapolated district-wide.'}</ProvenanceNote>
-          </div>
-        ) : <p style={{ color: COLORS.gray }}>No DVET supply data available.</p>}
-      </Card>
-
-      <Card title="Velocity (Honest Status)">
-        <p style={{ fontSize: 13, color: COLORS.gray, lineHeight: 1.6 }}>
-          Skill velocity requires ≥2 observation windows from distinct ingestion runs.
-          Current evidence is a single static historical snapshot — all skills are labeled
-          <strong> INSUFFICIENT_DATA</strong> or <strong>STATIC_SNAPSHOT</strong>.
-          No rising/falling trend is claimed.
-        </p>
-        <ProvenanceNote>Verified Rule: Historical source is NOT presented as live velocity.</ProvenanceNote>
-      </Card>
-    </>
-  )
-}
-
-// ─── Tab: Recommendations (RAG Q&A) ──────────────────────────────────────────
-
-function RecommendationsTab() {
-  const [query, setQuery] = useState('')
-  const [ragResult, setRagResult] = useState<RAGResponse | null>(null)
-  const [ragLoading, setRagLoading] = useState(false)
-  const [ragError, setRagError] = useState<string | null>(null)
-
-  const handleSubmit = useCallback(() => {
-    if (!query.trim()) return
-    setRagLoading(true)
-    setRagError(null)
-    const q = query.trim()
-    fetch(`/api/v1/ai/ask?q=${encodeURIComponent(q)}`)
-      .then(r => r.json())
-      .then(d => { setRagResult(d.ai || d.rag); setRagLoading(false) })
-      .catch(e => { setRagError(e.message); setRagLoading(false) })
-  }, [query])
-
-  const presets = [
-    'What skills are most in demand in Pune?',
-    'Which occupation has the most job postings?',
-    'What is the DVET supply coverage for IT skills?',
-    'How many jobs have district evidence?',
+  const columns = [
+    { key: 'skill_name', label: 'Skill', render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
+    { key: 'distinct_job_count', label: 'Jobs', align: 'right' },
+    { key: 'mention_count', label: 'Mentions', align: 'right' },
+    { key: 'normalized_distinct_job_count', label: 'Share', align: 'right',
+      render: (v: number) => `${(v * 100).toFixed(2)}%` },
+    { key: 'confidence', label: 'Confidence', align: 'right',
+      render: (v: Record<string, number>) => (
+        <span style={{ fontSize: 12 }}>
+          <span style={{ color: C.green }}>{v.HIGH || 0}H</span>{' '}
+          <span style={{ color: C.gold }}>{v.MEDIUM || 0}M</span>{' '}
+          <span style={{ color: C.gray }}>{v.LOW || 0}L</span>
+        </span>
+      )},
+    { key: 'evidence_type_breakdown', label: 'Evidence', align: 'right',
+      render: (v: Record<string, number>) => (
+        <span style={{ fontSize: 11, color: C.gray }}>
+          T:{v.TITLE || 0} D:{v.DESCRIPTION || 0} S:{v.SOURCE_SKILL || 0}
+        </span>
+      )},
+    { key: 'verification_status', label: 'Status',
+      render: (v: string) => <Badge status={v} size="sm" /> },
   ]
 
   return (
     <>
-      <Card title="Labour-Market Q&A (Evidence-Grounded)">
-        <p style={{ fontSize: 13, color: COLORS.gray, marginBottom: 12, lineHeight: 1.5 }}>
-          Ask a question about the Maharashtra labour market. Answers are grounded in persisted observations
-          only — no fabricated statistics, no invented salary data, no government impersonation.
-        </p>
-
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-          <input
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            placeholder="Ask a question…"
-            style={{
-              flex: 1, padding: '10px 14px', border: `1px solid ${COLORS.border}`, borderRadius: 6,
-              fontSize: 14, outline: 'none',
-            }}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={ragLoading || !query.trim()}
-            style={{
-              padding: '10px 20px', backgroundColor: COLORS.navy, color: COLORS.white,
-              border: 'none', borderRadius: 6, cursor: ragLoading ? 'wait' : 'pointer',
-              fontWeight: 600, fontSize: 14, opacity: ragLoading || !query.trim() ? 0.6 : 1,
-            }}
-          >
-            {ragLoading ? 'Searching…' : 'Ask'}
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-          {presets.map(p => (
-            <button
-              key={p}
-              onClick={() => { setQuery(p); }}
-              style={{
-                padding: '4px 10px', border: `1px solid ${COLORS.border}`, borderRadius: 12,
-                backgroundColor: COLORS.lightBg, fontSize: 11, color: COLORS.navy,
-                cursor: 'pointer',
-              }}
-            >{p}</button>
-          ))}
-        </div>
-
-        {ragError && (
-          <div style={{ padding: 12, backgroundColor: '#FFF5F5', border: '1px solid #FEB2B2', borderRadius: 6, color: '#9B2C2C', fontSize: 13, marginBottom: 12 }}>
-            Error: {ragError}
+      <Card title={`Skill Intelligence — ${skillDemand.data?.total_jobs_evaluated?.toLocaleString() || '—'} jobs analyzed`}
+        right={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input type="text" placeholder="Search skills…" value={search} onChange={e => setSearch(e.target.value)}
+              style={{ padding: '6px 12px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, width: 200 }} />
           </div>
-        )}
-
-        {ragResult && (
-          <div style={{ backgroundColor: COLORS.lightBg, borderRadius: 8, padding: 20 }}>
-            <div style={{ fontSize: 14, lineHeight: 1.7, color: COLORS.darkText, marginBottom: 12 }}>
-              {ragResult.answer}
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-              <span style={{ fontSize: 12, color: COLORS.gray }}>Confidence: <strong>{ragResult.confidence}</strong></span>
-              <span style={{ fontSize: 12, color: COLORS.gray }}>Evidence: <strong>{ragResult.evidence_count}</strong> records</span>
-              <span style={{ fontSize: 12, color: COLORS.gray }}>Freshness: <StatusBadge status={ragResult.source_freshness} /></span>
-            </div>
-            {ragResult.evidence && ragResult.evidence.length > 0 && (
-              <details style={{ marginTop: 8 }}>
-                <summary style={{ fontSize: 12, color: COLORS.navy, cursor: 'pointer' }}>View Evidence Sources ({ragResult.evidence.length})</summary>
-                <div style={{ marginTop: 8, fontSize: 12 }}>
-                  {ragResult.evidence.map((e, i) => (
-                    <div key={i} style={{ marginBottom: 6, padding: '6px 10px', backgroundColor: COLORS.white, borderRadius: 4, border: `1px solid ${COLORS.border}` }}>
-                      <span style={{ fontWeight: 500 }}>[{e.type}]</span> {e.title}
-                      {e.snippet && <span style={{ color: COLORS.gray }}> — {e.snippet.slice(0, 100)}…</span>}
-                    </div>
-                  ))}
-                </div>
-              </details>
-            )}
-            {ragResult.disclaimer && (
-              <div style={{ marginTop: 10, padding: '6px 12px', backgroundColor: '#FFFFF0', border: '1px solid #ECC94B', borderRadius: 4, fontSize: 11, color: '#975A16' }}>
-                {ragResult.disclaimer}
-              </div>
-            )}
-          </div>
-        )}
+        }>
+        <DataTable columns={columns} rows={rows} onRowClick={setSelectedSkill} />
+        <Provenance>
+          Shares are normalized distinct-job counts of evidence, NOT weighted demand scores.
+          {skillDemand.data ? ` Run: ${skillDemand.data.run_id.slice(0, 16)}…` : ''}
+        </Provenance>
       </Card>
+
+      {/* Skill detail drawer */}
+      <EvidenceDrawer open={!!selectedSkill} onClose={() => setSelectedSkill(null)}>
+        {selectedSkill && (
+          <div>
+            <h2 style={{ margin: '0 0 16px', fontSize: 18, color: C.dark }}>{selectedSkill.skill_name}</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+              <KPICard label="Distinct Jobs" value={selectedSkill.distinct_job_count} color={C.navy} />
+              <KPICard label="Mentions" value={selectedSkill.mention_count} color={C.teal} />
+              <KPICard label="Share" value={`${(selectedSkill.normalized_distinct_job_count * 100).toFixed(2)}%`} color={C.gold} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: C.gray }}>STATUS</span>
+                <Badge status={selectedSkill.verification_status} />
+              </div>
+            </div>
+
+            <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>Evidence Breakdown</h4>
+            <div style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 16 }}>
+              <div>Job Title matches: <strong>{selectedSkill.evidence_type_breakdown.TITLE || 0}</strong></div>
+              <div>Description matches: <strong>{selectedSkill.evidence_type_breakdown.DESCRIPTION || 0}</strong></div>
+              <div>Source skill mentions: <strong>{selectedSkill.evidence_type_breakdown.SOURCE_SKILL || 0}</strong></div>
+            </div>
+
+            <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>Confidence Distribution</h4>
+            <div style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 16 }}>
+              <div>HIGH: <strong style={{ color: C.green }}>{selectedSkill.confidence.HIGH || 0}</strong></div>
+              <div>MEDIUM: <strong style={{ color: C.gold }}>{selectedSkill.confidence.MEDIUM || 0}</strong></div>
+              <div>LOW: <strong style={{ color: C.gray }}>{selectedSkill.confidence.LOW || 0}</strong></div>
+            </div>
+
+            <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>Data Provenance</h4>
+            <div style={{ fontSize: 12, color: C.darkSubtle, lineHeight: 1.7 }}>
+              <div>Source: <code>naukri-historical-promptcloud</code></div>
+              <div>Freshness: <Badge status="HISTORICAL" size="sm" /></div>
+              <div>Method: deterministic skill extraction (canonical matcher)</div>
+              <div>Rule version: mvp-v1-no-score</div>
+              <div>Verification: {selectedSkill.verification_status}</div>
+            </div>
+          </div>
+        )}
+      </EvidenceDrawer>
     </>
   )
 }
 
-// ─── Tab: Sources ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Page: Skill Gap Explorer
+// ═══════════════════════════════════════════════════════════════════════════════
 
-function SourcesTab() {
-  const policies = useFetch<{ policies: SourcePolicy[]; count: number }>('/api/v1/governance/policies')
-  const health = useFetch<{ sources: SourceHealth[]; count: number }>('/api/v1/governance/health')
-  const districts = useFetch<{ districts: Array<{ name: string; division: string }>; count: number }>('/api/v1/districts/')
+function SkillGapsPage({ district, sector }: { district: string; sector: string }) {
+  const q = `?source_id=naukri-historical-promptcloud${district ? `&district=${district}` : ''}${sector ? `&sector=${sector}` : ''}`
+  const gaps = useFetch<GapResponse>(`/api/v1/skills/gaps${q}`)
+  const [filter, setFilter] = useState('ALL')
+  const [selected, setSelected] = useState<GapRow | null>(null)
+
+  const rows = useMemo(() => {
+    if (!gaps.data) return []
+    if (filter === 'ALL') return gaps.data.rows
+    return gaps.data.rows.filter(r => r.gap_status === filter)
+  }, [gaps.data, filter])
+
+  const summary = gaps.data?.gap_summary || {}
+
+  const columns = [
+    { key: 'skill_name', label: 'Skill', render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
+    { key: 'gap_status', label: 'Gap Status', render: (v: string) => <Badge status={v} /> },
+    { key: 'demand_distinct_job_count', label: 'Demand (Jobs)', align: 'right' as const },
+    { key: 'demand_mention_count', label: 'Mentions', align: 'right' as const },
+    { key: 'has_dvet_supply_evidence', label: 'Supply', align: 'center' as const,
+      render: (v: boolean) => v ? <Badge status="VERIFIED" size="sm" /> : <Badge status="NO_DATA" size="sm" /> },
+    { key: 'demand_confidence', label: 'Confidence', align: 'right' as const,
+      render: (v: Record<string, number>) => (
+        <span style={{ fontSize: 12 }}>
+          <span style={{ color: C.green }}>{v.HIGH || 0}H</span>{' '}
+          <span style={{ color: C.gold }}>{v.MEDIUM || 0}M</span>
+        </span>
+      )},
+  ]
 
   return (
     <>
-      <Card title="Source Governance & Health">
-        {health.loading ? <p style={{ color: COLORS.gray }}>Loading…</p> :
-         health.error ? <p style={{ color: COLORS.red }}>Error: {health.error}</p> :
-         health.data && health.data.sources.length > 0 ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${COLORS.border}`, textAlign: 'left' }}>
-                  <th style={{ padding: '8px 10px' }}>Source ID</th>
-                  <th style={{ padding: '8px 10px' }}>Name</th>
-                  <th style={{ padding: '8px 10px' }}>Status</th>
-                  <th style={{ padding: '8px 10px' }}>Freshness</th>
-                  <th style={{ padding: '8px 10px' }}>Last Fetched</th>
-                  <th style={{ padding: '8px 10px' }}>Reliability</th>
-                </tr>
-              </thead>
-              <tbody>
-                {health.data.sources.map(s => (
-                  <tr key={s.source_id} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                    <td style={{ padding: '6px 10px', fontFamily: 'monospace', fontSize: 12 }}>{s.source_id}</td>
-                    <td style={{ padding: '6px 10px' }}>{s.source_name}</td>
-                    <td style={{ padding: '6px 10px' }}><StatusBadge status={s.status} /></td>
-                    <td style={{ padding: '6px 10px' }}><StatusBadge status={s.freshness_class} /></td>
-                    <td style={{ padding: '6px 10px', fontSize: 12 }}>{s.last_fetched_at ? new Date(s.last_fetched_at).toLocaleDateString() : 'Never'}</td>
-                    <td style={{ padding: '6px 10px', fontSize: 11, color: COLORS.gray, maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {s.reliability_notes || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : <p style={{ color: COLORS.gray }}>No source data available.</p>}
-        <ProvenanceNote>Health telemetry is from persisted Source registry — not fabricated.</ProvenanceNote>
+      {/* Gap summary cards */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+        {[
+          ['ALL', C.navy, 'All Skills', (gaps.data?.count || 0)],
+          ['HIGH_GAP', C.red, 'High Gap', summary.HIGH_GAP || 0],
+          ['MEDIUM_GAP', C.gold, 'Medium Gap', summary.MEDIUM_GAP || 0],
+          ['LOW_GAP', C.teal, 'Low Gap', summary.LOW_GAP || 0],
+          ['NEEDS_REVIEW', C.gold, 'Needs Review', summary.NEEDS_REVIEW || 0],
+          ['NO_DATA', C.gray, 'No Data', summary.NO_DATA || 0],
+        ].map(([key, color, label, count]) => (
+          <button key={key as string} onClick={() => setFilter(key as string)}
+            style={{
+              padding: '10px 16px', border: `1px solid ${filter === key ? color : C.border}`,
+              borderRadius: 8, background: filter === key ? color : C.white,
+              color: filter === key ? C.white : C.dark, cursor: 'pointer',
+              fontWeight: filter === key ? 600 : 400, fontSize: 13, minWidth: 100,
+              transition: 'all 0.15s',
+            }}>
+            {label}: <strong>{count}</strong>
+          </button>
+        ))}
+      </div>
+
+      <Card title="Skill Gap Analysis"
+        right={<span style={{ fontSize: 12, color: C.gray }}>{rows.length} skills shown</span>}>
+        {gaps.loading ? <Loading /> : gaps.error ? <ErrorMsg msg={gaps.error} /> : (
+          <>
+            <DataTable columns={columns} rows={rows} onRowClick={setSelected} />
+            <div style={{ marginTop: 12 }}>
+              <Provenance>
+                Thresholds: HIGH ≥ {gaps.data?.gap_thresholds?.high_gap_threshold || 0.05} ·
+                MEDIUM ≥ {gaps.data?.gap_thresholds?.medium_gap_threshold || 0.01} ·
+                Supply: {gaps.data?.dvet_institute_count || 0} institute, {gaps.data?.dvet_trades_total || 0} trades ·
+                NOT extrapolated to all of Pune.
+              </Provenance>
+            </div>
+          </>
+        )}
       </Card>
 
-      {policies.data && policies.data.policies.length > 0 && (
-        <Card title={`Governance Policies (${policies.data.count})`}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${COLORS.border}`, textAlign: 'left' }}>
-                  <th style={{ padding: '6px 8px' }}>Source</th>
-                  <th style={{ padding: '6px 8px' }}>Category</th>
-                  <th style={{ padding: '6px 8px' }}>Authorization</th>
-                  <th style={{ padding: '6px 8px' }}>Robots</th>
-                  <th style={{ padding: '6px 8px' }}>Enabled</th>
-                </tr>
-              </thead>
-              <tbody>
-                {policies.data.policies.slice(0, 20).map(p => (
-                  <tr key={p.source_id} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                    <td style={{ padding: '5px 8px', fontFamily: 'monospace', fontSize: 12 }}>{p.source_id}</td>
-                    <td style={{ padding: '5px 8px' }}>{p.source_category}</td>
-                    <td style={{ padding: '5px 8px' }}><StatusBadge status={p.authorization_status} /></td>
-                    <td style={{ padding: '5px 8px' }}><StatusBadge status={p.robots_status} /></td>
-                    <td style={{ padding: '5px 8px' }}>{p.enabled ? '✓' : '✗'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      {districts.data && (
-        <Card title={`Maharashtra Geography — ${districts.data.count} Districts`}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {districts.data.districts.map(d => (
-              <div key={d.name} style={{
-                padding: '5px 10px', border: `1px solid ${COLORS.border}`, borderRadius: 6,
-                fontSize: 12, backgroundColor: COLORS.lightBg,
-              }}>
-                <span style={{ fontWeight: 500 }}>{d.name}</span>
-                <span style={{ color: COLORS.gray, marginLeft: 4 }}>({d.division})</span>
+      {/* Gap detail drawer */}
+      <EvidenceDrawer open={!!selected} onClose={() => setSelected(null)}>
+        {selected && (
+          <div>
+            <h2 style={{ margin: '0 0 8px', fontSize: 18, color: C.dark }}>{selected.skill_name}</h2>
+            <Badge status={selected.gap_status} />
+            <div style={{ marginTop: 16 }}>
+              <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>Demand Evidence</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                <KPICard label="Jobs" value={selected.demand_distinct_job_count} color={C.navy} />
+                <KPICard label="Mentions" value={selected.demand_mention_count} color={C.teal} />
+                <KPICard label="Share" value={`${(selected.demand_normalized_distinct_job_count * 100).toFixed(2)}%`} />
+                <KPICard label="Supply" value={selected.has_dvet_supply_evidence ? 'Present' : 'None'}
+                  color={selected.has_dvet_supply_evidence ? C.green : C.red} />
               </div>
-            ))}
+            </div>
+
+            {selected.has_dvet_supply_evidence && selected.dvet_supply_detail && (
+              <div style={{ marginBottom: 16 }}>
+                <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>DVET Supply</h4>
+                <div style={{ fontSize: 13, lineHeight: 1.8 }}>
+                  <div>Trades: {selected.dvet_supply_detail.trades?.join(', ')}</div>
+                  <div>Verification: <Badge status="NEEDS_REVIEW" size="sm" /></div>
+                </div>
+              </div>
+            )}
+
+            <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>Gap Explanation</h4>
+            <div style={{ fontSize: 13, lineHeight: 1.7, color: C.darkSubtle, padding: 12,
+              background: C.lightBg, borderRadius: 6, marginBottom: 16 }}>
+              {selected.gap_status === 'HIGH_GAP' && !selected.has_dvet_supply_evidence &&
+                `High demand (${selected.demand_distinct_job_count} jobs) with NO training supply evidence. This represents a critical skills gap.`}
+              {selected.gap_status === 'HIGH_GAP' && selected.has_dvet_supply_evidence &&
+                `High demand but supply is flagged NEEDS_REVIEW. Existing training programmes may not adequately cover this skill.`}
+              {selected.gap_status === 'MEDIUM_GAP' &&
+                `Moderate demand (${selected.demand_distinct_job_count} jobs). Training capacity should be reviewed.`}
+              {selected.gap_status === 'LOW_GAP' &&
+                `Low but present demand. Monitor trend before acting.`}
+              {selected.gap_status === 'NEEDS_REVIEW' &&
+                `DVET supply evidence exists but is unverified. Cross-reference with actual intake records.`}
+              {selected.gap_status === 'NO_DATA' &&
+                `Insufficient data. Add to next ingestion batch.`}
+            </div>
+
+            <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 8 }}>Data Source</h4>
+            <div style={{ fontSize: 12, color: C.darkSubtle, lineHeight: 1.7 }}>
+              <div>Source: naukri-historical-promptcloud</div>
+              <div>Freshness: <Badge status="HISTORICAL" size="sm" /></div>
+              <div>Method: deterministic skill extraction</div>
+            </div>
           </div>
-          <ProvenanceNote>36 districts across 6 revenue divisions. "Maharashtra" alone resolves to AMBIGUOUS — never defaults to Mumbai.</ProvenanceNote>
-        </Card>
-      )}
+        )}
+      </EvidenceDrawer>
     </>
   )
 }
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Page: Training Supply
+// ═══════════════════════════════════════════════════════════════════════════════
 
-const TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'demand', label: 'Demand' },
-  { id: 'skill-gaps', label: 'Skill Gaps' },
-  { id: 'recommendations', label: 'Recommendations' },
-  { id: 'sources', label: 'Sources' },
-] as const
-
-export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('overview')
+function TrainingPage() {
+  const supply = useFetch<{ dvet_supply_summary: DvetSupply }>('/api/v1/skills/supply')
+  const s = supply.data?.dvet_supply_summary
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F7F9FC' }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: COLORS.navy, color: COLORS.white,
-        padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <div>
-          <div style={{ fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.85 }}>
-            Government of Maharashtra · Skill Development, Employment, Entrepreneurship & Innovation
+    <>
+      <Card title="DVET Training Supply — ITI Haveli, Pune">
+        {supply.loading ? <Loading /> : !s ? <Empty msg="No supply data." /> : (
+          <div>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 16 }}>
+              <KPICard label="Institute" value={s.institute_name || '—'} icon="🏫" />
+              <KPICard label="Trades" value={s.total_trades} icon="🔧" color={C.teal} />
+              <KPICard label="Total Intake" value={s.total_intake} icon="👥" color={C.navy} />
+              <KPICard label="Skills Covered" value={Object.keys(s.skills_with_supply_evidence || {}).length}
+                icon="🎯" color={C.gold} />
+            </div>
+
+            <Provenance>{s.extrapolation_note}</Provenance>
+
+            {s.skills_with_supply_evidence && Object.keys(s.skills_with_supply_evidence).length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 10 }}>Skills with Supply Evidence</h4>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Skill ID</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left' }}>Covering Trades</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'right' }}>Trade Count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(s.skills_with_supply_evidence).map(([sid, detail]) => (
+                        <tr key={sid} style={{ borderBottom: `1px solid ${C.borderLight}` }}>
+                          <td style={{ padding: '7px 10px', fontWeight: 500 }}>{sid}</td>
+                          <td style={{ padding: '7px 10px', fontSize: 12 }}>{(detail as any).trades?.join(', ')}</td>
+                          <td style={{ padding: '7px 10px', textAlign: 'right' }}>{(detail as any).count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {s.occupations_with_supply_evidence && Object.keys(s.occupations_with_supply_evidence).length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <h4 style={{ fontSize: 13, color: C.gray, marginBottom: 10 }}>Occupations with Supply Evidence</h4>
+                <div style={{ fontSize: 13 }}>
+                  {Object.entries(s.occupations_with_supply_evidence).map(([occ, detail]) => (
+                    <div key={occ} style={{ marginBottom: 4 }}>
+                      <strong>{occ}</strong>: {(detail as any).trades?.join(', ')}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <h1 style={{ margin: '4px 0 0', fontSize: 19, fontWeight: 600 }}>
-            Labour-Market Intelligence & Curriculum-Alignment Platform
-          </h1>
-        </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, backgroundColor: 'rgba(255,255,255,0.15)', padding: '4px 10px', borderRadius: 4 }}>
-            Pilot: <strong>Pune</strong>
-          </span>
-          <span style={{ fontSize: 12, backgroundColor: COLORS.teal, padding: '4px 10px', borderRadius: 4 }}>
-            v0.4 Intelligence
-          </span>
-        </div>
-      </header>
+        )}
+      </Card>
+    </>
+  )
+}
 
-      {/* Navigation */}
-      <nav style={{
-        backgroundColor: COLORS.white, borderBottom: `1px solid ${COLORS.border}`,
-        padding: '0 24px', display: 'flex', gap: 24,
-      }}>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '14px 4px', border: 'none', background: 'none',
-              borderBottom: activeTab === tab.id ? `3px solid ${COLORS.navy}` : '3px solid transparent',
-              color: activeTab === tab.id ? COLORS.navy : COLORS.gray,
-              fontWeight: activeTab === tab.id ? 600 : 400,
-              cursor: 'pointer', fontSize: 14,
-            }}
-          >{tab.label}</button>
+// ═══════════════════════════════════════════════════════════════════════════════
+// Page: Recommendations
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function RecommendationsPage({ district, sector }: { district: string; sector: string }) {
+  const q = `?source_id=naukri-historical-promptcloud${district ? `&district=${district}` : ''}${sector ? `&sector=${sector}` : ''}`
+  const recs = useFetch<RecommendationsResponse>(`/api/v1/skills/recommendations${q}&limit=20`)
+
+  const priorityColor: Record<string, string> = { HIGH: C.red, MEDIUM: C.gold, LOW: C.gray }
+
+  return (
+    <>
+      <Card title="Deterministic Skill Recommendations"
+        right={<Badge status={recs.data?.rule_version || 'loading'} size="sm" />}>
+        {recs.loading ? <Loading /> : recs.error ? <ErrorMsg msg={recs.error} /> : (
+          <div>
+            {recs.data && recs.data.recommendations.length === 0 && (
+              <Empty msg="No recommendations — insufficient data under current filters." />
+            )}
+            {(recs.data?.recommendations || []).map((r, i) => (
+              <div key={i} style={{
+                padding: '16px 18px', border: `1px solid ${C.border}`, borderRadius: 8,
+                marginBottom: 12, borderLeft: `4px solid ${priorityColor[r.priority] || C.gray}`,
+                background: C.white,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                  <div>
+                    <strong style={{ fontSize: 14, color: C.dark }}>{r.skill_name}</strong>
+                    <div style={{ marginTop: 4, fontSize: 13, color: C.darkSubtle }}>{r.recommendation}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Badge status={r.priority} />
+                    <Badge status={r.data_quality} size="sm" />
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.7, marginTop: 8 }}>
+                  <div><strong>Reason:</strong> {r.reason}</div>
+                  <div><strong>Evidence:</strong> {r.evidence}</div>
+                  <div><strong>Next action:</strong> {r.next_action}</div>
+                </div>
+              </div>
+            ))}
+            <Provenance>
+              {recs.data?.note || 'Recommendations are deterministic rules applied to verified evidence.'}
+            </Provenance>
+          </div>
+        )}
+      </Card>
+    </>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Page: Q&A Assistant
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function AssistantPage() {
+  const [query, setQuery] = useState('')
+  const [result, setResult] = useState<RAGResponse | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const ask = useCallback(() => {
+    if (!query.trim()) return
+    setLoading(true); setError(null)
+    fetch(`/api/v1/ai/ask?q=${encodeURIComponent(query.trim())}`)
+      .then(r => r.json())
+      .then(d => {
+        const ai = d.ai || {}
+        const rag = d.rag || {}
+        setResult({ ...ai, evidence: rag.evidence || ai.evidence || [] })
+        setLoading(false)
+      })
+      .catch(e => { setError(e.message); setLoading(false) })
+  }, [query])
+
+  const presets = [
+    'What are the top skills in Pune IT-ITeS?',
+    'Which skills have the largest observed gaps?',
+    'What training trades cover Python?',
+    'How many jobs have district evidence?',
+  ]
+
+  return (
+    <Card title="Labour-Market Assistant (Evidence-Grounded)">
+      <p style={{ fontSize: 13, color: C.gray, marginBottom: 12, lineHeight: 1.5 }}>
+        Ask about the Maharashtra labour market. Answers come from persisted observations only — no fabricated statistics.
+      </p>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+        <input type="text" value={query} onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && ask()}
+          placeholder="Ask a question…"
+          style={{ flex: 1, padding: '10px 14px', border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14 }} />
+        <button onClick={ask} disabled={loading || !query.trim()}
+          style={{ padding: '10px 20px', backgroundColor: C.navy, color: C.white, border: 'none',
+            borderRadius: 6, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontSize: 14,
+            opacity: loading || !query.trim() ? 0.6 : 1 }}>
+          {loading ? 'Searching…' : 'Ask'}
+        </button>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+        {presets.map(p => (
+          <button key={p} onClick={() => setQuery(p)}
+            style={{ padding: '4px 10px', border: `1px solid ${C.border}`, borderRadius: 12,
+              backgroundColor: C.lightBg, fontSize: 11, color: C.navy, cursor: 'pointer' }}>
+            {p}
+          </button>
         ))}
-      </nav>
+      </div>
+      {error && <ErrorMsg msg={error} />}
+      {result && (
+        <div style={{ backgroundColor: C.lightBg, borderRadius: 8, padding: 20 }}>
+          <div style={{ fontSize: 14, lineHeight: 1.7, color: C.dark, marginBottom: 12 }}>{result.answer}</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, color: C.gray }}>Confidence: <strong>{result.confidence}</strong></span>
+            <span style={{ fontSize: 12, color: C.gray }}>Evidence: <strong>{result.evidence_count}</strong> records</span>
+            <span style={{ fontSize: 12, color: C.gray }}>Freshness: <Badge status={result.source_freshness} /></span>
+          </div>
+          {result.evidence && result.evidence.length > 0 && (
+            <details style={{ marginTop: 8 }}>
+              <summary style={{ fontSize: 12, color: C.navy, cursor: 'pointer' }}>Evidence ({result.evidence.length})</summary>
+              <div style={{ marginTop: 8, fontSize: 12 }}>
+                {result.evidence.map((e, i) => (
+                  <div key={i} style={{ marginBottom: 6, padding: '6px 10px', backgroundColor: C.white,
+                    borderRadius: 4, border: `1px solid ${C.border}` }}>
+                    <span style={{ fontWeight: 500 }}>[{e.type}]</span> {e.title}
+                    {e.snippet && <span style={{ color: C.gray }}> — {e.snippet.slice(0, 100)}…</span>}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+          {result.disclaimer && (
+            <div style={{ marginTop: 10, padding: '6px 12px', backgroundColor: '#FFFFF0',
+              border: '1px solid #ECC94B', borderRadius: 4, fontSize: 11, color: '#975A16' }}>
+              {result.disclaimer}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
 
-      {/* Main Content */}
-      <main style={{ flex: 1, padding: '28px 24px', maxWidth: 1200, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'demand' && <DemandTab />}
-        {activeTab === 'skill-gaps' && <SkillGapsTab />}
-        {activeTab === 'recommendations' && <RecommendationsTab />}
-        {activeTab === 'sources' && <SourcesTab />}
-      </main>
+// ═══════════════════════════════════════════════════════════════════════════════
+// Sidebar navigation
+// ═══════════════════════════════════════════════════════════════════════════════
 
-      {/* Footer */}
-      <footer style={{
-        borderTop: `1px solid ${COLORS.border}`, padding: '14px 24px',
-        backgroundColor: COLORS.white, color: COLORS.gray, fontSize: 12, textAlign: 'center',
+const NAV = [
+  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+  { id: 'skills', label: 'Skill Intelligence', icon: '🎯' },
+  { id: 'gaps', label: 'Skill Gap Explorer', icon: '⚠️' },
+  { id: 'training', label: 'Training Supply', icon: '🏫' },
+  { id: 'recommendations', label: 'Recommendations', icon: '💡' },
+  { id: 'assistant', label: 'AI Assistant', icon: '🤖' },
+] as const
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Main App
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export default function App() {
+  const [page, setPage] = useState('dashboard')
+  const [district, setDistrict] = useState('Pune')
+  const [sector, setSector] = useState('IT-ITeS')
+
+  const activeItem = NAV.find(n => n.id === page)
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: C.bg, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+      {/* Sidebar */}
+      <aside style={{
+        width: C.sidebarW, minWidth: C.sidebarW, backgroundColor: C.navyDark,
+        color: C.white, display: 'flex', flexDirection: 'column',
       }}>
-        Department of Skills, Employment, Entrepreneurship and Innovation · Pune Pilot · Evidence-Grounding Enforced · September 2026
-      </footer>
+        {/* Logo */}
+        <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.6, marginBottom: 4 }}>
+            Government of Maharashtra
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.2 }}>
+            Demand<span style={{ color: C.teal }}>-X</span>
+          </div>
+          <div style={{ fontSize: 11, opacity: 0.5, marginTop: 2 }}>
+            Labour Market Intelligence
+          </div>
+        </div>
+
+        {/* Nav items */}
+        <nav style={{ flex: 1, padding: '12px 0' }}>
+          {NAV.map(item => (
+            <button key={item.id} onClick={() => setPage(item.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '10px 18px', border: 'none', cursor: 'pointer',
+                background: page === item.id ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: C.white, fontSize: 13, textAlign: 'left',
+                borderLeft: page === item.id ? `3px solid ${C.teal}` : '3px solid transparent',
+                fontWeight: page === item.id ? 600 : 400,
+                transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => { if (page !== item.id) (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.05)' }}
+              onMouseLeave={e => { if (page !== item.id) (e.target as HTMLElement).style.background = 'transparent' }}
+            >
+              <span style={{ fontSize: 16 }}>{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Pilot badge */}
+        <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.5, marginBottom: 4 }}>
+            Pilot
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>Maharashtra · Pune</div>
+          <div style={{ fontSize: 10, opacity: 0.5, marginTop: 2 }}>September 2026</div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Top bar */}
+        <header style={{
+          backgroundColor: C.white, borderBottom: `1px solid ${C.border}`,
+          padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: C.dark }}>{activeItem?.icon} {activeItem?.label}</div>
+            <div style={{ fontSize: 12, color: C.gray, marginTop: 2 }}>
+              Maharashtra Labour-Market Intelligence & Curriculum-Alignment Platform
+            </div>
+          </div>
+          <FilterBar district={district} setDistrict={setDistrict} sector={sector} setSector={setSector} />
+        </header>
+
+        {/* Page content */}
+        <main style={{ flex: 1, padding: '24px 28px', maxWidth: 1200, width: '100%', boxSizing: 'border-box' }}>
+          {page === 'dashboard' && <DashboardPage district={district} sector={sector} />}
+          {page === 'skills' && <SkillsPage district={district} sector={sector} />}
+          {page === 'gaps' && <SkillGapsPage district={district} sector={sector} />}
+          {page === 'training' && <TrainingPage />}
+          {page === 'recommendations' && <RecommendationsPage district={district} sector={sector} />}
+          {page === 'assistant' && <AssistantPage />}
+        </main>
+
+        {/* Footer */}
+        <footer style={{
+          borderTop: `1px solid ${C.border}`, padding: '12px 28px',
+          backgroundColor: C.white, color: C.gray, fontSize: 11,
+          display: 'flex', justifyContent: 'space-between',
+        }}>
+          <span>Department of Skills, Employment, Entrepreneurship and Innovation</span>
+          <span>Pune Pilot · Evidence-Grounding Enforced · v0.5</span>
+        </footer>
+      </div>
     </div>
   )
 }
